@@ -9,14 +9,14 @@ from MapException import MapParseException
 import zlib
 from math import floor
 
-def write_float(writer, ibits, fbits, val):
+def _write_float(writer, ibits, fbits, val):
   ipart = abs(floor(val))
   fpart = int((val - floor(val)) * (2 ** (fbits - 1)))
   writer.write(1, 1 if val < 0  else 0)
   writer.write(ibits - 1, ipart)
   writer.write(fbits, fpart)
 
-def write_6bit_str(writer, str):
+def _write_6bit_str(writer, str):
   writer.write(6, len(str))
   for ch in str:
     v = ord(ch)
@@ -31,14 +31,14 @@ def write_6bit_str(writer, str):
     else:
       writer.write(6, 63)
 
-def write_var_type(writer, var):
+def _write_var_type(writer, var):
   type = var.type
   value = var.value
   if type == VarType.NULL: return
   if type == VarType.BOOL: return writer.write(1, 1 if value else 0)
   if type == VarType.UINT: return writer.write(32, value)
   if type == VarType.INT: return writer.write(32, value)
-  if type == VarType.FLOAT: return write_float(writer, 32, 32, value)
+  if type == VarType.FLOAT: return _write_float(writer, 32, 32, value)
 
   if type == VarType.STRING:
     writer.write(16, len(value))
@@ -47,8 +47,8 @@ def write_var_type(writer, var):
     return
 
   if type == VarType.VEC2:
-    write_float(writer, 32, 32, value[0])
-    write_float(writer, 32, 32, value[1])
+    _write_float(writer, 32, 32, value[0])
+    _write_float(writer, 32, 32, value[1])
     return
 
   if type == VarType.ARRAY:
@@ -57,22 +57,22 @@ def write_var_type(writer, var):
     writer.write(4, atype)
     writer.write(16, len(arr))
     for x in arr:
-      write_var_type(writer, x)
+      _write_var_type(writer, x)
     return
 
   raise MapParseException("unknown var type")
 
-def write_var(writer, key, var):
+def _write_var(writer, key, var):
   writer.write(4, var.type)
-  write_6bit_str(writer, key)
-  write_var_type(writer, var)
+  _write_6bit_str(writer, key)
+  _write_var_type(writer, var)
 
-def write_var_map(writer, vars):
+def _write_var_map(writer, vars):
   for key in vars:
-    write_var(writer, key, vars[key])
+    _write_var(writer, key, vars[key])
   writer.write(4, VarType.NULL)
 
-def write_segment(base_writer, seg_x, seg_y, segment):
+def _write_segment(base_writer, seg_x, seg_y, segment):
   writer = BitWriter()
 
   flags = 0
@@ -123,8 +123,8 @@ def write_segment(base_writer, seg_x, seg_y, segment):
       writer.write(32, id)
       writer.write(8, layer)
       writer.write(8, prop.layer_sub)
-      write_float(writer, 28, 4, x)
-      write_float(writer, 28, 4, y)
+      _write_float(writer, 28, 4, x)
+      _write_float(writer, 28, 4, y)
       writer.write(16, prop.rotation)
       writer.write(1, 1 if prop.scale_x else 0)
       writer.write(1, 1 if prop.scale_y else 0)
@@ -139,15 +139,15 @@ def write_segment(base_writer, seg_x, seg_y, segment):
     writer.write(16, len(segment['entities']))
     for (id, x, y, entity) in segment['entities']:
       writer.write(32, id)
-      write_6bit_str(writer, entity.type)
-      write_float(writer, 32, 8, x)
-      write_float(writer, 32, 8, y)
+      _write_6bit_str(writer, entity.type)
+      _write_float(writer, 32, 8, x)
+      _write_float(writer, 32, 8, y)
       writer.write(16, entity.rotation)
       writer.write(8, entity.unk1)
       writer.write(1, entity.unk2)
       writer.write(1, entity.unk3)
       writer.write(1, entity.unk4)
-      write_var_map(writer, entity.vars)
+      _write_var_map(writer, entity.vars)
 
   writer_body = writer
   writer = base_writer
@@ -168,14 +168,14 @@ def write_segment(base_writer, seg_x, seg_y, segment):
   writer.write(32, flags)
   writer.write_bytes(writer_body.bytes())
 
-def write_region(x, y, region):
+def _write_region(x, y, region):
   writer = BitWriter()
   for coord in region['segments']:
     writer.align(8)
-    write_segment(writer, coord[0], coord[1], region['segments'][coord])
+    _write_segment(writer, coord[0], coord[1], region['segments'][coord])
   if region['backdrop']['present']:
     writer.align(8)
-    write_segment(writer, 0, 0, region['backdrop'])
+    _write_segment(writer, 0, 0, region['backdrop'])
 
   data = zlib.compress(writer.bytes())
 
@@ -265,7 +265,7 @@ def compute_region_map(map):
       seg['props'].append((id, layer, x, y, map.backdrop.get_prop(id)))
   return region_map
 
-def write_metadata(writer, var_size, map):
+def _write_metadata(writer, var_size, map):
   writer.write_bytes(b"DF_MTD")
   writer.write(16, 4)
   writer.write(32, var_size + 32 + len(map.sshot))
@@ -275,8 +275,15 @@ def write_metadata(writer, var_size, map):
   writer.write(32, 0)
 
 def write_map(map):
+  """ Writes a Map object into a sequence of bytes in the Dustforce level
+      format.
+
+      Returns a bytes object representing the level.
+
+      On error raises a MapException.
+  """
   writer_front = BitWriter()
-  write_var_map(writer_front, map.vars)
+  _write_var_map(writer_front, map.vars)
   writer_front.align(8)
   var_size = writer_front.byte_count()
 
@@ -285,13 +292,13 @@ def write_map(map):
   for coord in region_map:
     writer_back.align(8)
     writer_front.write(32, writer_back.pos >> 3)
-    reg_data = write_region(coord[0], coord[1], region_map[coord])
+    reg_data = _write_region(coord[0], coord[1], region_map[coord])
     writer_back.write(32, len(reg_data) + 4)
     writer_back.write_bytes(reg_data)
     
   writer_header = BitWriter()
   writer_header.write(32, len(region_map))
-  write_metadata(writer_header, var_size, map)
+  _write_metadata(writer_header, var_size, map)
   writer_header.write(32, len(map.sshot))
   writer_header.write_bytes(map.sshot)
 
