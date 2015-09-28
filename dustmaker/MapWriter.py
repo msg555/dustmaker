@@ -1,10 +1,10 @@
-from Map import Map
-from Tile import Tile
-from Prop import Prop
-from Entity import Entity
-from Var import Var, VarType
-from BitWriter import BitWriter
-from MapException import MapParseException
+from .Map import Map
+from .Tile import Tile
+from .Prop import Prop
+from .Entity import Entity
+from .Var import Var, VarType
+from .BitWriter import BitWriter
+from .MapException import MapParseException
 
 import zlib
 from math import floor
@@ -76,25 +76,20 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
   writer = BitWriter()
 
   flags = 0
-  tiles = {i: segment['tiles'][i] for i in range(21) if segment['tiles'][i]}
+  tiles = [(i, segment['tiles'][i]) for i in range(21) if segment['tiles'][i]]
 
   dusts = []
   if tiles:
     flags |= 1
 
     writer.write(8, len(tiles))
-    for (layer, tilelayer) in tiles.items():
+    for (layer, tilelayer) in tiles:
       writer.write(8, layer)
       writer.write(10, len(tilelayer))
 
-      ordered_tiles = []
-      for (coord, tile) in tilelayer.items():
-        ordered_tiles.append((coord[1], coord[0], tile))
-      ordered_tiles.sort()
-
-      for (y, x, tile) in ordered_tiles:
+      for (x, y, tile) in sorted(tilelayer, key = lambda x: (x[1], x[0])):
         if layer == 19 and tile.dust_data != None:
-          dusts.append((y, x, tile))
+          dusts.append((x, y, tile))
         writer.write(5, x)
         writer.write(5, y)
         writer.write(8, tile.shape)
@@ -107,7 +102,7 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
     flags |= 2
 
     writer.write(10, len(dusts))
-    for (y, x, tile) in dusts:
+    for (x, y, tile) in dusts:
       writer.write(5, x)
       writer.write(5, y)
 
@@ -123,8 +118,8 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
       writer.write(32, id)
       writer.write(8, layer)
       writer.write(8, prop.layer_sub)
-      _write_float(writer, 28, 4, x)
-      _write_float(writer, 28, 4, y)
+      _write_float(writer, 28, 4, x * 48)
+      _write_float(writer, 28, 4, y * 48)
       writer.write(16, prop.rotation)
       writer.write(1, 1 if prop.scale_x else 0)
       writer.write(1, 1 if prop.scale_y else 0)
@@ -140,8 +135,8 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
     for (id, x, y, entity) in segment['entities']:
       writer.write(32, id)
       _write_6bit_str(writer, entity.type)
-      _write_float(writer, 32, 8, x)
-      _write_float(writer, 32, 8, y)
+      _write_float(writer, 32, 8, x * 48)
+      _write_float(writer, 32, 8, y * 48)
       writer.write(16, entity.rotation)
       writer.write(8, entity.unk1)
       writer.write(1, entity.unk2)
@@ -170,7 +165,7 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
 
 def _write_region(x, y, region):
   writer = BitWriter()
-  for coord in region['segments']:
+  for coord in sorted(region['segments'].keys()):
     writer.align(8)
     _write_segment(writer, coord[0], coord[1], region['segments'][coord])
   if region['backdrop']['present']:
@@ -189,21 +184,21 @@ def _write_region(x, y, region):
 
   return b"".join([writer_header.bytes(), data])
 
-def segment_get(segment_map, x, y):
+def _segment_get(segment_map, x, y):
   sx = int(floor(x / 16)) & 0xF
   sy = int(floor(y / 16)) & 0xF
   if (sx, sy) in segment_map:
     return segment_map[(sx, sy)]
 
   seg = dict(
-    tiles = [{} for x in range(21)],
+    tiles = [[] for x in range(21)],
     entities = [],
     props = [],
   )
   segment_map[(sx, sy)] = seg
   return seg
 
-def region_get(region_map, x, y):
+def _region_get(region_map, x, y):
   rx = int(floor(x / 256))
   ry = int(floor(y / 256))
   if (rx, ry) in region_map:
@@ -213,7 +208,7 @@ def region_get(region_map, x, y):
     segments = {},
     backdrop = dict(
       present = False,
-      tiles = [{} for x in range(21)],
+      tiles = [[] for x in range(21)],
       entities = [],
       props = [],
     )
@@ -221,46 +216,42 @@ def region_get(region_map, x, y):
   region_map[(rx, ry)] = reg
   return reg
 
-def compute_region_map(map):
+def _compute_region_map(map):
   region_map = {}
-  tiles = map.tile_map()
-  for coord in tiles:
+  for (coord, tile) in map.tiles.items():
     layer = coord[0]
     x = coord[1]
     y = coord[2]
-    seg = segment_get(region_get(region_map, x, y)['segments'], x, y)
-    seg['tiles'][layer][(x & 0xF, y & 0xF)] = tiles[coord]
+    seg = _segment_get(_region_get(region_map, x, y)['segments'], x, y)
+    seg['tiles'][layer].append((x & 0xF, y & 0xF, tile))
 
-  for id in map.entity_ids:
+  for id in map.entity_map.keys():
     x = map.get_entity_xposition(id)
-    y = map.get_entity_xposition(id)
-    seg = segment_get(region_get(region_map, x, y)['segments'], x, y)
+    y = map.get_entity_yposition(id)
+    seg = _segment_get(_region_get(region_map, x, y)['segments'], x, y)
     seg['entities'].append((id, x, y, map.get_entity(id)))
 
-  for id in map.prop_ids:
+  for id in map.prop_map.keys():
     x = map.get_prop_xposition(id)
     y = map.get_prop_yposition(id)
     layer = map.get_prop_layer(id)
-    seg = segment_get(region_get(region_map, x, y)['segments'], x, y)
+    seg = _segment_get(_region_get(region_map, x, y)['segments'], x, y)
     seg['props'].append((id, layer, x, y, map.get_prop(id)))
     
   if map.backdrop:
-    tiles = map.backdrop.tile_map()
-    for coord in tiles:
+    for (coord, tile) in map.backdrop.tiles.items():
       layer = coord[0]
       x = coord[1]
       y = coord[2]
-      seg = segment_get(region_get(region_map, x * 16, y * 16)['backdrop'],
-                                   0, 0)
+      seg = _region_get(region_map, x * 16, y * 16)['backdrop']
       seg['present'] = True
-      seg['tiles'][layer][(x & 0xF, y & 0xF)] = tiles[coord]
+      seg['tiles'][layer].append((x & 0xF, y & 0xF, tile))
 
-    for id in map.backdrop.prop_ids:
+    for id in map.backdrop.prop_map:
       x = map.backdrop.get_prop_xposition(id)
       y = map.backdrop.get_prop_yposition(id)
       layer = map.backdrop.get_prop_layer(id)
-      seg = segment_get(region_get(region_map, x * 16, y * 16)['backdrop'],
-                                   0, 0)
+      seg = _region_get(region_map, x, y)['backdrop']
       seg['present'] = True
       seg['props'].append((id, layer, x, y, map.backdrop.get_prop(id)))
   return region_map
@@ -274,6 +265,13 @@ def _write_metadata(writer, var_size, map):
   writer.write(32, 0)
   writer.write(32, 0)
 
+def _norm_for_sort(coord):
+  x = coord[0]
+  y = coord[1]
+  if x < 0: x += 1 << 16
+  if y < 0: y += 1 << 16
+  return (x, y)
+
 def write_map(map):
   """ Writes a Map object into a sequence of bytes in the Dustforce level
       format.
@@ -284,14 +282,13 @@ def write_map(map):
   """
   writer_front = BitWriter()
   _write_var_map(writer_front, map.vars)
-  writer_front.align(8)
   var_size = writer_front.byte_count()
 
   writer_back = BitWriter()
-  region_map = compute_region_map(map)
-  for coord in region_map:
+  region_map = _compute_region_map(map)
+  for coord in sorted(region_map.keys(), key = _norm_for_sort):
     writer_back.align(8)
-    writer_front.write(32, writer_back.pos >> 3)
+    writer_front.write(32, writer_back.byte_count())
     reg_data = _write_region(coord[0], coord[1], region_map[coord])
     writer_back.write(32, len(reg_data) + 4)
     writer_back.write_bytes(reg_data)
@@ -308,7 +305,5 @@ def write_map(map):
   writer.write(32, 12 + len(writer_header.bytes()) +
                         len(writer_front.bytes()) +
                         len(writer_back.bytes()))
-  writer.write_bytes(writer_header.bytes())
-  writer.write_bytes(writer_front.bytes())
-  writer.write_bytes(writer_back.bytes())
-  return writer.bytes()
+  return b"".join([writer.bytes(), writer_header.bytes(),
+                   writer_front.bytes(), writer_back.bytes()])

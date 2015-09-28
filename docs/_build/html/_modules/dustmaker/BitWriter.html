@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>dustmaker.BitWriter &mdash; dustmaker  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="dustmaker  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for dustmaker.BitWriter</h1><div class="highlight"><pre>
+<div class="viewcode-block" id="BitWriter"><a class="viewcode-back" href="../../dustmaker.html#dustmaker.BitWriter.BitWriter">[docs]</a><span class="k">class</span> <span class="nc">BitWriter</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot; Allows integers to be written in little endian byte</span>
+<span class="sd">      order into a bytes object.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Create a new empty BitWriter. &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BitWriter.write"><a class="viewcode-back" href="../../dustmaker.html#dustmaker.BitWriter.BitWriter.write">[docs]</a>  <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bits</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Writes `val` as a `bits` bit integer in little endian order to the</span>
+<span class="sd">        bit stream.</span>
+
+<span class="sd">        bits -- The number of bits in `val`.</span>
+<span class="sd">        val -- The value of the integer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">val</span> <span class="o">+=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">bits</span>
+
+    <span class="n">off</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">&amp;</span> <span class="mh">0x7</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">+=</span> <span class="n">bits</span>
+    <span class="k">if</span> <span class="n">off</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">cnt</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">8</span> <span class="o">-</span> <span class="n">off</span><span class="p">,</span> <span class="n">bits</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">|=</span> <span class="p">(</span><span class="n">val</span> <span class="o">&amp;</span> <span class="p">((</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">cnt</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="n">off</span>
+      <span class="n">bits</span> <span class="o">-=</span> <span class="n">cnt</span>
+      <span class="n">val</span> <span class="o">=</span> <span class="n">val</span> <span class="o">&gt;&gt;</span> <span class="n">cnt</span>
+
+    <span class="k">while</span> <span class="n">bits</span> <span class="o">&gt;=</span> <span class="mi">8</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span> <span class="o">&amp;</span> <span class="mh">0xFF</span><span class="p">)</span>
+      <span class="n">val</span> <span class="o">=</span> <span class="n">val</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span>
+      <span class="n">bits</span> <span class="o">-=</span> <span class="mi">8</span>
+
+    <span class="k">if</span> <span class="n">bits</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span> <span class="o">&amp;</span> <span class="p">((</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">bits</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="BitWriter.bytes"><a class="viewcode-back" href="../../dustmaker.html#dustmaker.BitWriter.BitWriter.bytes">[docs]</a>  <span class="k">def</span> <span class="nf">bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns a bytes object containing all written data so far. &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="BitWriter.byte_count"><a class="viewcode-back" href="../../dustmaker.html#dustmaker.BitWriter.BitWriter.byte_count">[docs]</a>  <span class="k">def</span> <span class="nf">byte_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns the number of bytse written so far. &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="BitWriter.align"><a class="viewcode-back" href="../../dustmaker.html#dustmaker.BitWriter.BitWriter.align">[docs]</a>  <span class="k">def</span> <span class="nf">align</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="mi">8</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Aligns the bit stream to a given multiple of bits.</span>
+<span class="sd">        Default alignment is 8-bit alignment.</span>
+
+<span class="sd">        size -- The desired bit alignment.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">+=</span> <span class="p">(</span><span class="n">size</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">%</span> <span class="n">size</span><span class="p">)</span> <span class="o">%</span> <span class="n">size</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">*</span> <span class="mi">8</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="BitWriter.write_bytes"><a class="viewcode-back" href="../../dustmaker.html#dustmaker.BitWriter.BitWriter.write_bytes">[docs]</a>  <span class="k">def</span> <span class="nf">write_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Write the bytes given by `data` to the stream.</span>
+
+<span class="sd">        data -- The bytes to write to the stream.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">&amp;</span> <span class="mi">7</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">+=</span> <span class="n">data</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">+=</span> <span class="mi">8</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

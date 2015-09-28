@@ -1,10 +1,10 @@
-from Map import Map
-from Tile import Tile
-from Prop import Prop
-from Entity import Entity
-from Var import Var, VarType
-from BitReader import BitReader
-from MapException import MapParseException
+from .Map import Map
+from .Tile import Tile
+from .Prop import Prop
+from .Entity import Entity
+from .Var import Var, VarType
+from .BitReader import BitReader
+from .MapException import MapParseException
 
 import zlib
 
@@ -139,7 +139,7 @@ def _read_segment(reader, map, xoffset, yoffset):
       prop_index = reader.read(12)
       palette = reader.read(8)
 
-      map.add_prop(id, layer, xpos, ypos, Prop(
+      map.add_prop(id, layer, xpos / 48, ypos / 48, Prop(
                    layer_sub, rotation, scale_x, scale_y,
                    prop_set, prop_group, prop_index, palette))
 
@@ -160,20 +160,19 @@ def _read_segment(reader, map, xoffset, yoffset):
       unk4 = reader.read(1)
       vars = _read_var_map(reader)
 
-      map.add_entity(id, xpos, ypos, Entity(
+      map.add_entity(id, xpos / 48, ypos / 48, Entity(
                      type, rotation, unk1, unk2, unk3, unk4, vars))
 
 def _read_region(reader, map):
   region_len = reader.read(32)
   uncompressed_len = reader.read(32)
-  offx = reader.read(16)
-  offy = reader.read(16)
+  offx = reader.read(16, True)
+  offy = reader.read(16, True)
   unk4 = reader.read(16)
   segments = reader.read(16)
   has_backdrop = reader.read(8) != 0
 
   reader = BitReader(zlib.decompress(reader.read_bytes(region_len - 17)))
-  print(segments, uncompressed_len, len(reader.data))
   for i in range(segments):
     reader.align(8)
     _read_segment(reader, map, offx * 256, offy * 256)
@@ -211,17 +210,21 @@ def read_map(data):
     _read_expect(reader, b"DF_LVL")
 
     version = reader.read(16)
-    if version > 42:
-      filesize = reader.read(32)
-      num_regions = reader.read(32)
-      meta = _read_metadata(reader)
+    if version <= 42:
+      raise MapParseException("unsupported level version")
 
+    filesize = reader.read(32)
+    num_regions = reader.read(32)
+    meta = _read_metadata(reader)
+
+    sshot_data = b""
     if version > 43:
       sshot_len = reader.read(32)
       sshot_data = reader.read_bytes(sshot_len)
 
     map = Map()
     map.vars = _read_var_map(reader)
+    map.sshot = sshot_data
 
     reader.align(8)
     reader.skip(num_regions * 32)
