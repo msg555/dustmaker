@@ -33,29 +33,29 @@ class TileShape(IntEnum):
       characters formed a circle around you; the angle of the tile would be
       approximately the angle of the circle surface where its label is.::
 
-              +++++
-           +7+     +3+
-          +           +
-         +             +
-        B               C 
-       +                 +
-      +                   +
-      2                   6 
-      +                   +
-     +                     +
-     +                     +
-     +          X          +
-     +                     +
-     +                     +
-      +                   +
-      8                   4
-      +                   +
-       +                 +
-        A               D 
-         +             +
-          +           +
-           +1+     +5+
-              +++++
+                +++++
+             +7+     +3+
+            +           +
+           +             +
+          B               C 
+         +                 +
+        +                   +
+        2                   6 
+        +                   +
+       +                     +
+       +                     +
+       +          X          +
+       +                     +
+       +                     +
+        +                   +
+        8                   4
+        +                   +
+         +                 +
+          A               D 
+           +             +
+            +           +
+             +1+     +5+
+                +++++
   """
   FULL = 0
   BIG_1 = 1

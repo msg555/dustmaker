@@ -8,6 +8,4 @@ from .Tile import Tile, TileShape, TileSpriteSet, TileSide
 from .MapReader import read_map
 from .MapWriter import write_map
 
-__version__ = 0.1
-
-
+__version__ = "0.1.3"

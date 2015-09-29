@@ -46,12 +46,13 @@
 <span id="dustmaker-bitreader-module"></span><h2>dustmaker.BitReader module<a class="headerlink" href="#module-dustmaker.BitReader" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dustmaker.BitReader.BitReader">
-<em class="property">class </em><code class="descclassname">dustmaker.BitReader.</code><code class="descname">BitReader</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitReader.html#BitReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitReader.BitReader" title="Permalink to this definition">¶</a></dt>
-<dd><p>Allows integers to be read in little endian byte
+<em class="property">class </em><code class="descclassname">dustmaker.BitReader.</code><code class="descname">BitReader</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitReader.BitReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Allows integers to be read in little endian byte
 order from a sequence of bytes.</p>
 <dl class="method">
 <dt id="dustmaker.BitReader.BitReader.align">
-<code class="descname">align</code><span class="sig-paren">(</span><em>size=8</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitReader.html#BitReader.align"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitReader.BitReader.align" title="Permalink to this definition">¶</a></dt>
+<code class="descname">align</code><span class="sig-paren">(</span><em>size=8</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitReader.BitReader.align" title="Permalink to this definition">¶</a></dt>
 <dd><p>Aligns the bit stream to a given multiple of bits.
 Default alignment is 8-bit alignment.</p>
 <p>size &#8211; The desired bit alignment.</p>
@@ -59,13 +60,13 @@ Default alignment is 8-bit alignment.</p>
 
 <dl class="method">
 <dt id="dustmaker.BitReader.BitReader.more">
-<code class="descname">more</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitReader.html#BitReader.more"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitReader.BitReader.more" title="Permalink to this definition">¶</a></dt>
+<code class="descname">more</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitReader.BitReader.more" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns true if there are more bits to be read.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.BitReader.BitReader.read">
-<code class="descname">read</code><span class="sig-paren">(</span><em>bits</em>, <em>signed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitReader.html#BitReader.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitReader.BitReader.read" title="Permalink to this definition">¶</a></dt>
+<code class="descname">read</code><span class="sig-paren">(</span><em>bits</em>, <em>signed=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitReader.BitReader.read" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the next <cite>bits</cite> bits into an integer in little endian order.</p>
 <p>bits &#8211; The number of bits to read.
 signed &#8211; Indicates if the MSB is a sign bit.</p>
@@ -73,7 +74,7 @@ signed &#8211; Indicates if the MSB is a sign bit.</p>
 
 <dl class="method">
 <dt id="dustmaker.BitReader.BitReader.read_bytes">
-<code class="descname">read_bytes</code><span class="sig-paren">(</span><em>num</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitReader.html#BitReader.read_bytes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitReader.BitReader.read_bytes" title="Permalink to this definition">¶</a></dt>
+<code class="descname">read_bytes</code><span class="sig-paren">(</span><em>num</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitReader.BitReader.read_bytes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a bytes object containing the next <cite>num</cite> bytes from the bit
 stream.</p>
 <p>num &#8211; The number of bytes to extract from the bit stream.</p>
@@ -81,7 +82,7 @@ stream.</p>
 
 <dl class="method">
 <dt id="dustmaker.BitReader.BitReader.skip">
-<code class="descname">skip</code><span class="sig-paren">(</span><em>bits</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitReader.html#BitReader.skip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitReader.BitReader.skip" title="Permalink to this definition">¶</a></dt>
+<code class="descname">skip</code><span class="sig-paren">(</span><em>bits</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitReader.BitReader.skip" title="Permalink to this definition">¶</a></dt>
 <dd><p>Skips <cite>bits</cite> bits in the bit stream.</p>
 <p>bits &#8211; the number of bits to skip.</p>
 </dd></dl>
@@ -93,12 +94,13 @@ stream.</p>
 <span id="dustmaker-bitwriter-module"></span><h2>dustmaker.BitWriter module<a class="headerlink" href="#module-dustmaker.BitWriter" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dustmaker.BitWriter.BitWriter">
-<em class="property">class </em><code class="descclassname">dustmaker.BitWriter.</code><code class="descname">BitWriter</code><a class="reference internal" href="_modules/dustmaker/BitWriter.html#BitWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitWriter.BitWriter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Allows integers to be written in little endian byte
+<em class="property">class </em><code class="descclassname">dustmaker.BitWriter.</code><code class="descname">BitWriter</code><a class="headerlink" href="#dustmaker.BitWriter.BitWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Allows integers to be written in little endian byte
 order into a bytes object.</p>
 <dl class="method">
 <dt id="dustmaker.BitWriter.BitWriter.align">
-<code class="descname">align</code><span class="sig-paren">(</span><em>size=8</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitWriter.html#BitWriter.align"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitWriter.BitWriter.align" title="Permalink to this definition">¶</a></dt>
+<code class="descname">align</code><span class="sig-paren">(</span><em>size=8</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitWriter.BitWriter.align" title="Permalink to this definition">¶</a></dt>
 <dd><p>Aligns the bit stream to a given multiple of bits.
 Default alignment is 8-bit alignment.</p>
 <p>size &#8211; The desired bit alignment.</p>
@@ -106,19 +108,19 @@ Default alignment is 8-bit alignment.</p>
 
 <dl class="method">
 <dt id="dustmaker.BitWriter.BitWriter.byte_count">
-<code class="descname">byte_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitWriter.html#BitWriter.byte_count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitWriter.BitWriter.byte_count" title="Permalink to this definition">¶</a></dt>
+<code class="descname">byte_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitWriter.BitWriter.byte_count" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the number of bytse written so far.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.BitWriter.BitWriter.bytes">
-<code class="descname">bytes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitWriter.html#BitWriter.bytes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitWriter.BitWriter.bytes" title="Permalink to this definition">¶</a></dt>
+<code class="descname">bytes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitWriter.BitWriter.bytes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a bytes object containing all written data so far.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.BitWriter.BitWriter.write">
-<code class="descname">write</code><span class="sig-paren">(</span><em>bits</em>, <em>val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitWriter.html#BitWriter.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitWriter.BitWriter.write" title="Permalink to this definition">¶</a></dt>
+<code class="descname">write</code><span class="sig-paren">(</span><em>bits</em>, <em>val</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitWriter.BitWriter.write" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writes <cite>val</cite> as a <cite>bits</cite> bit integer in little endian order to the
 bit stream.</p>
 <p>bits &#8211; The number of bits in <cite>val</cite>.
@@ -127,7 +129,7 @@ val &#8211; The value of the integer.</p>
 
 <dl class="method">
 <dt id="dustmaker.BitWriter.BitWriter.write_bytes">
-<code class="descname">write_bytes</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/BitWriter.html#BitWriter.write_bytes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.BitWriter.BitWriter.write_bytes" title="Permalink to this definition">¶</a></dt>
+<code class="descname">write_bytes</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.BitWriter.BitWriter.write_bytes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write the bytes given by <cite>data</cite> to the stream.</p>
 <p>data &#8211; The bytes to write to the stream.</p>
 </dd></dl>
@@ -139,68 +141,85 @@ val &#8211; The value of the integer.</p>
 <span id="dustmaker-entity-module"></span><h2>dustmaker.Entity module<a class="headerlink" href="#module-dustmaker.Entity" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dustmaker.Entity.Entity">
-<em class="property">class </em><code class="descclassname">dustmaker.Entity.</code><code class="descname">Entity</code><span class="sig-paren">(</span><em>type</em>, <em>rotation</em>, <em>unk1</em>, <em>unk2</em>, <em>unk3</em>, <em>unk4</em>, <em>vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Entity.html#Entity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Entity.Entity" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<em class="property">class </em><code class="descclassname">dustmaker.Entity.</code><code class="descname">Entity</code><span class="sig-paren">(</span><em>type</em>, <em>rotation</em>, <em>unk1</em>, <em>unk2</em>, <em>unk3</em>, <em>unk4</em>, <em>vars</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.Entity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+</dd></dl>
 
 </div>
 <div class="section" id="module-dustmaker.Map">
 <span id="dustmaker-map-module"></span><h2>dustmaker.Map module<a class="headerlink" href="#module-dustmaker.Map" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dustmaker.Map.Map">
-<em class="property">class </em><code class="descclassname">dustmaker.Map.</code><code class="descname">Map</code><span class="sig-paren">(</span><em>backdrop=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<em class="property">class </em><code class="descclassname">dustmaker.Map.</code><code class="descname">Map</code><span class="sig-paren">(</span><em>backdrop=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
 <dt id="dustmaker.Map.Map.add_entity">
-<code class="descname">add_entity</code><span class="sig-paren">(</span><em>id</em>, <em>x</em>, <em>y</em>, <em>entity</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.add_entity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.add_entity" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_entity</code><span class="sig-paren">(</span><em>id</em>, <em>x</em>, <em>y</em>, <em>entity</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.add_entity" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.add_prop">
-<code class="descname">add_prop</code><span class="sig-paren">(</span><em>id</em>, <em>layer</em>, <em>x</em>, <em>y</em>, <em>prop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.add_prop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.add_prop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_prop</code><span class="sig-paren">(</span><em>id</em>, <em>layer</em>, <em>x</em>, <em>y</em>, <em>prop</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.add_prop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.add_tile">
-<code class="descname">add_tile</code><span class="sig-paren">(</span><em>layer</em>, <em>x</em>, <em>y</em>, <em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.add_tile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.add_tile" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_tile</code><span class="sig-paren">(</span><em>layer</em>, <em>x</em>, <em>y</em>, <em>tile</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.add_tile" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_entity">
-<code class="descname">get_entity</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.get_entity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.get_entity" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_entity</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_entity" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_entity_xposition">
-<code class="descname">get_entity_xposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.get_entity_xposition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.get_entity_xposition" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_entity_xposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_entity_xposition" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_entity_yposition">
-<code class="descname">get_entity_yposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.get_entity_yposition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.get_entity_yposition" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_entity_yposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_entity_yposition" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_prop">
-<code class="descname">get_prop</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.get_prop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.get_prop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_prop</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_prop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_prop_layer">
-<code class="descname">get_prop_layer</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.get_prop_layer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.get_prop_layer" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_prop_layer</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_prop_layer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_prop_xposition">
-<code class="descname">get_prop_xposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.get_prop_xposition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.get_prop_xposition" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_prop_xposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_prop_xposition" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_prop_yposition">
-<code class="descname">get_prop_yposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.get_prop_yposition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.get_prop_yposition" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_prop_yposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_prop_yposition" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_tile">
-<code class="descname">get_tile</code><span class="sig-paren">(</span><em>layer</em>, <em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Map.html#Map.get_tile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Map.Map.get_tile" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_tile</code><span class="sig-paren">(</span><em>layer</em>, <em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_tile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Map.Map.name">
+<code class="descname">name</code><span class="sig-paren">(</span><em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Map.Map.start_position">
+<code class="descname">start_position</code><span class="sig-paren">(</span><em>val=None</em>, <em>player=1</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.start_position" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Map.Map.virtual_character">
+<code class="descname">virtual_character</code><span class="sig-paren">(</span><em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.virtual_character" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -210,41 +229,178 @@ val &#8211; The value of the integer.</p>
 <span id="dustmaker-mapexception-module"></span><h2>dustmaker.MapException module<a class="headerlink" href="#module-dustmaker.MapException" title="Permalink to this headline">¶</a></h2>
 <dl class="exception">
 <dt id="dustmaker.MapException.MapException">
-<em class="property">exception </em><code class="descclassname">dustmaker.MapException.</code><code class="descname">MapException</code><a class="reference internal" href="_modules/dustmaker/MapException.html#MapException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.MapException.MapException" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></code></p>
+<em class="property">exception </em><code class="descclassname">dustmaker.MapException.</code><code class="descname">MapException</code><a class="headerlink" href="#dustmaker.MapException.MapException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
 </dd></dl>
 
 <dl class="exception">
 <dt id="dustmaker.MapException.MapParseException">
-<em class="property">exception </em><code class="descclassname">dustmaker.MapException.</code><code class="descname">MapParseException</code><a class="reference internal" href="_modules/dustmaker/MapException.html#MapParseException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.MapException.MapParseException" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="descclassname">dustmaker.MapException.</code><code class="descname">MapParseException</code><a class="headerlink" href="#dustmaker.MapException.MapParseException" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#dustmaker.MapException.MapException" title="dustmaker.MapException.MapException"><code class="xref py py-class docutils literal"><span class="pre">dustmaker.MapException.MapException</span></code></a></p>
 </dd></dl>
 
 </div>
-<div class="section" id="dustmaker-mapreader-module">
-<h2>dustmaker.MapReader module<a class="headerlink" href="#dustmaker-mapreader-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-dustmaker.MapReader">
+<span id="dustmaker-mapreader-module"></span><h2>dustmaker.MapReader module<a class="headerlink" href="#module-dustmaker.MapReader" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="dustmaker.MapReader.read_map">
+<code class="descclassname">dustmaker.MapReader.</code><code class="descname">read_map</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.MapReader.read_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a Map object parsed from <cite>data</cite> in the Dustforce level format.</p>
+<p>data - A sequence of bytes representing a Dustforce level.</p>
+<p>On error raises a MapParseException.</p>
+</dd></dl>
+
 </div>
-<div class="section" id="dustmaker-mapwriter-module">
-<h2>dustmaker.MapWriter module<a class="headerlink" href="#dustmaker-mapwriter-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-dustmaker.MapWriter">
+<span id="dustmaker-mapwriter-module"></span><h2>dustmaker.MapWriter module<a class="headerlink" href="#module-dustmaker.MapWriter" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="dustmaker.MapWriter.write_map">
+<code class="descclassname">dustmaker.MapWriter.</code><code class="descname">write_map</code><span class="sig-paren">(</span><em>map</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.MapWriter.write_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes a Map object into a sequence of bytes in the Dustforce level
+format.</p>
+<p>Returns a bytes object representing the level.</p>
+<p>On error raises a MapException.</p>
+</dd></dl>
+
 </div>
 <div class="section" id="module-dustmaker.Prop">
 <span id="dustmaker-prop-module"></span><h2>dustmaker.Prop module<a class="headerlink" href="#module-dustmaker.Prop" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dustmaker.Prop.Prop">
-<em class="property">class </em><code class="descclassname">dustmaker.Prop.</code><code class="descname">Prop</code><span class="sig-paren">(</span><em>layer_sub</em>, <em>rotation</em>, <em>scale_x</em>, <em>scale_y</em>, <em>prop_set</em>, <em>prop_group</em>, <em>prop_index</em>, <em>palette</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Prop.html#Prop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Prop.Prop" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<em class="property">class </em><code class="descclassname">dustmaker.Prop.</code><code class="descname">Prop</code><span class="sig-paren">(</span><em>layer_sub</em>, <em>rotation</em>, <em>scale_x</em>, <em>scale_y</em>, <em>prop_set</em>, <em>prop_group</em>, <em>prop_index</em>, <em>palette</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Prop.Prop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+</dd></dl>
 
 </div>
 <div class="section" id="module-dustmaker.Tile">
 <span id="dustmaker-tile-module"></span><h2>dustmaker.Tile module<a class="headerlink" href="#module-dustmaker.Tile" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dustmaker.Tile.Tile">
-<em class="property">class </em><code class="descclassname">dustmaker.Tile.</code><code class="descname">Tile</code><span class="sig-paren">(</span><em>shape</em>, <em>tile_data</em>, <em>dust_data=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dustmaker/Tile.html#Tile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dustmaker.Tile.Tile" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<em class="property">class </em><code class="descclassname">dustmaker.Tile.</code><code class="descname">Tile</code><span class="sig-paren">(</span><em>shape</em>, <em>_tile_data=None</em>, <em>_dust_data=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Tile.Tile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Represents a single tile in a Dustforce level.  Positional information
+is stored within Map.</p>
+<dl class="method">
+<dt id="dustmaker.Tile.Tile.edge_angle">
+<code class="descname">edge_angle</code><span class="sig-paren">(</span><em>side</em>, <em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Tile.Tile.edge_angle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the angle of <cite>side</cite> as a 16 bit integer.</p>
+<p>side &#8211; The side to get/set edge angle.
+val &#8211; If present a 16 bit integer to set as the new edge angle.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Tile.Tile.edge_bits">
+<code class="descname">edge_bits</code><span class="sig-paren">(</span><em>side</em>, <em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Tile.Tile.edge_bits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the 4 bit number associated with <cite>side</cite> surface of the tile.
+I&#8217;m unsure what each bit means currently.  Set all to 0 to freely move
+through that side of the tile and to 0xF to cause collisions.</p>
+<p>side &#8211; The side to get/set edge bits.
+val &#8211; If present a 4 bit integer to set as the new edge bits.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Tile.Tile.sprite_palette">
+<code class="descname">sprite_palette</code><span class="sig-paren">(</span><em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Tile.Tile.sprite_palette" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the palette index associated with this tile.</p>
+<p>val &#8211; If present the new palette index for this tile.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Tile.Tile.sprite_path">
+<code class="descname">sprite_path</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Tile.Tile.sprite_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the palette index associated with this tile.  You may
+retrieve the complete game sprites listing from
+<a class="reference external" href="https://www.dropbox.com/s/jm37ew9p74olgca/sprites.zip?dl=0">https://www.dropbox.com/s/jm37ew9p74olgca/sprites.zip?dl=0</a></p>
+<p>val &#8211; If present the new palette index for this tile.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Tile.Tile.sprite_set">
+<code class="descname">sprite_set</code><span class="sig-paren">(</span><em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Tile.Tile.sprite_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the sprite set from TileSpriteSet associated with this tile.</p>
+<p>val &#8211; If present a TileSpriteSet to set as the new sprite set.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Tile.Tile.sprite_tile">
+<code class="descname">sprite_tile</code><span class="sig-paren">(</span><em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Tile.Tile.sprite_tile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the tile index associated with this tile.</p>
+<p>val &#8211; If present the new tile index for this tile.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dustmaker.Tile.TileShape">
+<em class="property">class </em><code class="descclassname">dustmaker.Tile.</code><code class="descname">TileShape</code><a class="headerlink" href="#dustmaker.Tile.TileShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.IntEnum</span></code></p>
+<p>Tiles come in four main types; full, half, big, and small.</p>
+<p>Full corresponds to a complete square tile.</p>
+<p>Half corresponds to one of the tiles aligned to 45 degrees that take up
+half of the tile unit.  These come in four varieties A, B, C, and D
+depicted on the wheel below.</p>
+<p>Big and small tiles form the inbetween angles.  The big tile variant
+covers 75% of the tile while the small tile variant covers 25% of the
+tile.  Each of these comes in 8 varieties 1-8 depicted in the wheel below.</p>
+<p>To determine the angle of a half, big, or small tile from its shape find
+its identifier in the wheel.  Imagine you were located at X and the +
+characters formed a circle around you; the angle of the tile would be
+approximately the angle of the circle surface where its label is.:</p>
+<div class="highlight-python"><div class="highlight"><pre>         +++++
+      +7+     +3+
+     +           +
+    +             +
+   B               C 
+  +                 +
+ +                   +
+ 2                   6 
+ +                   +
++                     +
++                     +
++          X          +
++                     +
++                     +
+ +                   +
+ 8                   4
+ +                   +
+  +                 +
+   A               D 
+    +             +
+     +           +
+      +1+     +5+
+         +++++``
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="dustmaker.Tile.TileSide">
+<em class="property">class </em><code class="descclassname">dustmaker.Tile.</code><code class="descname">TileSide</code><a class="headerlink" href="#dustmaker.Tile.TileSide" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.IntEnum</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="dustmaker.Tile.TileSpriteSet">
+<em class="property">class </em><code class="descclassname">dustmaker.Tile.</code><code class="descname">TileSpriteSet</code><a class="headerlink" href="#dustmaker.Tile.TileSpriteSet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.IntEnum</span></code></p>
+<p>Used to describe what set of tiles a tile&#8217;s sprite comes from.</p>
+</dd></dl>
 
 </div>
-<div class="section" id="dustmaker-var-module">
-<h2>dustmaker.Var module<a class="headerlink" href="#dustmaker-var-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-dustmaker.Var">
+<span id="dustmaker-var-module"></span><h2>dustmaker.Var module<a class="headerlink" href="#module-dustmaker.Var" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="dustmaker.Var.Var">
+<em class="property">class </em><code class="descclassname">dustmaker.Var.</code><code class="descname">Var</code><span class="sig-paren">(</span><em>type</em>, <em>value</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Var.Var" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="dustmaker.Var.VarType">
+<em class="property">class </em><code class="descclassname">dustmaker.Var.</code><code class="descname">VarType</code><a class="headerlink" href="#dustmaker.Var.VarType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.IntEnum</span></code></p>
+</dd></dl>
+
 </div>
 <div class="section" id="module-dustmaker">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-dustmaker" title="Permalink to this headline">¶</a></h2>
@@ -266,11 +422,11 @@ val &#8211; The value of the integer.</p>
 <li><a class="reference internal" href="#module-dustmaker.Entity">dustmaker.Entity module</a></li>
 <li><a class="reference internal" href="#module-dustmaker.Map">dustmaker.Map module</a></li>
 <li><a class="reference internal" href="#module-dustmaker.MapException">dustmaker.MapException module</a></li>
-<li><a class="reference internal" href="#dustmaker-mapreader-module">dustmaker.MapReader module</a></li>
-<li><a class="reference internal" href="#dustmaker-mapwriter-module">dustmaker.MapWriter module</a></li>
+<li><a class="reference internal" href="#module-dustmaker.MapReader">dustmaker.MapReader module</a></li>
+<li><a class="reference internal" href="#module-dustmaker.MapWriter">dustmaker.MapWriter module</a></li>
 <li><a class="reference internal" href="#module-dustmaker.Prop">dustmaker.Prop module</a></li>
 <li><a class="reference internal" href="#module-dustmaker.Tile">dustmaker.Tile module</a></li>
-<li><a class="reference internal" href="#dustmaker-var-module">dustmaker.Var module</a></li>
+<li><a class="reference internal" href="#module-dustmaker.Var">dustmaker.Var module</a></li>
 <li><a class="reference internal" href="#module-dustmaker">Module contents</a></li>
 </ul>
 </li>

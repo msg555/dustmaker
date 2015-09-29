@@ -1,5 +1,5 @@
 .. dustmaker documentation master file, created by
-   sphinx-quickstart on Mon Sep 28 18:02:13 2015.
+   sphinx-quickstart on Mon Sep 28 23:31:07 2015.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
