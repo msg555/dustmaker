@@ -1,5 +1,5 @@
 from .Map import Map
-from .Tile import Tile
+from .Tile import Tile, TileShape
 from .Prop import Prop
 from .Entity import Entity
 from .Var import Var, VarType
@@ -108,7 +108,9 @@ def _read_segment(reader, map, xoffset, yoffset):
         ypos = reader.read(5)
         shape = reader.read(8)
         data = reader.read_bytes(12)
-        map.add_tile(layer, xoffset + xpos, yoffset + ypos, Tile(shape, data))
+        if shape & 0x80:
+          map.add_tile(layer, xoffset + xpos, yoffset + ypos,
+                       Tile(TileShape(shape & 0x1F), data))
 
   if flags & 2:
     dusts = reader.read(10)

@@ -92,7 +92,7 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
           dusts.append((x, y, tile))
         writer.write(5, x)
         writer.write(5, y)
-        writer.write(8, tile.shape)
+        writer.write(8, tile.shape | 0x80)
 
         if len(tile.tile_data) != 12:
           raise MapParseException("invalid tile data")

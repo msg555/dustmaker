@@ -1,11 +1,15 @@
 from dustmaker.MapReader import read_map
 from dustmaker.MapWriter import write_map
 
+import os
+
+here = os.path.abspath(os.path.dirname(__file__))
+
 class TestDustmaker:
   def test_read_write(self):
-    f0 = "/home/msg555/Dustforce/content/levels2/downhill"
+    f_in = os.path.join(here, "downhill")
 
-    with open(f0, "rb") as f:
+    with open(f_in, "rb") as f:
       data = bytes(f.read())
 
     map1 = read_map(data)
