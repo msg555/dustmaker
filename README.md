@@ -9,6 +9,10 @@ Documentation
 Installation
 ------------
 
+    easy_install3 dustmaker
+
+or
+
     pip install dustmaker
 
 Creating A Map From Scratch
