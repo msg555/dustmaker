@@ -29,33 +29,33 @@ class TileShape(IntEnum):
       tile.  Each of these comes in 8 varieties 1-8 depicted in the wheel below.
 
       To determine the angle of a half, big, or small tile from its shape find
-      its identifier in the wheel.  Imagine you were located at X and the *
+      its identifier in the wheel.  Imagine you were located at X and the +
       characters formed a circle around you; the angle of the tile would be
       approximately the angle of the circle surface where its label is.
 
-              *****
-           *7*     *3*
-          *           *
-         *             *
+              +++++
+           +7+     +3+
+          +           +
+         +             +
         B               C 
-       *                 *
-      *                   *
+       +                 +
+      +                   +
       2                   6 
-      *                   *
-     *                     *
-     *                     *
-     *          X          *
-     *                     *
-     *                     *
-      *                   *
+      +                   +
+     +                     +
+     +                     +
+     +          X          +
+     +                     +
+     +                     +
+      +                   +
       8                   4
-      *                   *
-       *                 *
+      +                   +
+       +                 +
         A               D 
-         *             *
-          *           *
-           *1*     *5*
-              *****
+         +             +
+          +           +
+           +1+     +5+
+              +++++
   """
   FULL = 0
   BIG_1 = 1
