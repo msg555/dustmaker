@@ -1,6 +1,9 @@
 Dustmaker
 =========
 
+Dustmaker is a python3 library (only, at the moment) for read, manipulating, and
+writing Dustforce level files.
+
 Documentation
 -------------
 
