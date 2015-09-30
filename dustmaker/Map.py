@@ -24,14 +24,14 @@ class Map:
     return self._var_access("level_name", VarType.STRING, val, "")
 
   def start_position(self, val = None, player = 1):
-    result = (0, 0)
+    result = [0, 0]
     keys = ["p%d_x" % player, "p%d_y" % player]
     for (i, key) in enumerate(keys):
       if key in self.vars:
         result[i] = self.vars[key].value / 48.0
       if not val is None:
-        self.vars[key] = Var(VarType.UINT, int(round(val[i])))
-    return result
+        self.vars[key] = Var(VarType.UINT, int(round(val[i] * 48)))
+    return (result[0], result[1])
 
   def virtual_character(self, val = None):
     return self._var_access("vector_character", VarType.BOOL, val, False)
@@ -74,3 +74,19 @@ class Map:
 
   def get_entity_yposition(self, id):
     return self.entity_map[id][1]
+
+  def translate(self, x, y):
+    ix = int(x)
+    iy = int(y)
+    self.tiles = {(c[0], c[1] + ix, c[2] + iy): tile
+                  for (c, tile) in self.tiles.items()}
+    self.prop_map = {id: (p[0], p[1] + x, p[2] + y, p[3])
+                     for (id, p) in self.prop_map.items()}
+    if hasattr(self, "backdrop"):
+      pos = self.start_position()
+      self.start_position((pos[0] + x, pos[1] + y))
+      self.entity_map = {id: (p[0] + x, p[1] + y, p[2])
+                       for (id, p) in self.entity_map.items()}
+      for p in self.entity_map.values():
+        p[2].translate(x, y)
+      self.backdrop.translate(x / 16, y / 16)
