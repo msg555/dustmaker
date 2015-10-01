@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # dustmaker documentation build configuration file, created by
-# sphinx-quickstart on Mon Sep 28 23:31:07 2015.
+# sphinx-quickstart on Thu Oct  1 18:57:35 2015.
 #
 # This file is execfile()d with the current directory set to its
 # containing dir.

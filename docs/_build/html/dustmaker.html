@@ -140,9 +140,152 @@ val &#8211; The value of the integer.</p>
 <div class="section" id="module-dustmaker.Entity">
 <span id="dustmaker-entity-module"></span><h2>dustmaker.Entity module<a class="headerlink" href="#module-dustmaker.Entity" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
+<dt id="dustmaker.Entity.AIController">
+<em class="property">class </em><code class="descclassname">dustmaker.Entity.</code><code class="descname">AIController</code><span class="sig-paren">(</span><em>vars</em>, <em>rotation=0</em>, <em>unk1=0</em>, <em>unk2=0</em>, <em>unk3=0</em>, <em>unk4=0</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.AIController" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#dustmaker.Entity.Entity" title="dustmaker.Entity.Entity"><code class="xref py py-class docutils literal"><span class="pre">dustmaker.Entity.Entity</span></code></a></p>
+<dl class="attribute">
+<dt id="dustmaker.Entity.AIController.TYPE_IDENTIFIER">
+<code class="descname">TYPE_IDENTIFIER</code><em class="property"> = 'AI_controller'</em><a class="headerlink" href="#dustmaker.Entity.AIController.TYPE_IDENTIFIER" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.AIController.node_append">
+<code class="descname">node_append</code><span class="sig-paren">(</span><em>val</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.AIController.node_append" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.AIController.node_clear">
+<code class="descname">node_clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.AIController.node_clear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.AIController.node_count">
+<code class="descname">node_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.AIController.node_count" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.AIController.node_pop">
+<code class="descname">node_pop</code><span class="sig-paren">(</span><em>ind=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.AIController.node_pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.AIController.node_position">
+<code class="descname">node_position</code><span class="sig-paren">(</span><em>ind</em>, <em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.AIController.node_position" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.AIController.puppet">
+<code class="descname">puppet</code><span class="sig-paren">(</span><em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.AIController.puppet" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.AIController.remap_ids">
+<code class="descname">remap_ids</code><span class="sig-paren">(</span><em>id_map</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.AIController.remap_ids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.AIController.translate">
+<code class="descname">translate</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.AIController.translate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dustmaker.Entity.CameraNode">
+<em class="property">class </em><code class="descclassname">dustmaker.Entity.</code><code class="descname">CameraNode</code><span class="sig-paren">(</span><em>vars</em>, <em>rotation=0</em>, <em>unk1=0</em>, <em>unk2=0</em>, <em>unk3=0</em>, <em>unk4=0</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.CameraNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#dustmaker.Entity.Entity" title="dustmaker.Entity.Entity"><code class="xref py py-class docutils literal"><span class="pre">dustmaker.Entity.Entity</span></code></a></p>
+<dl class="attribute">
+<dt id="dustmaker.Entity.CameraNode.TYPE_IDENTIFIER">
+<code class="descname">TYPE_IDENTIFIER</code><em class="property"> = 'camera_node'</em><a class="headerlink" href="#dustmaker.Entity.CameraNode.TYPE_IDENTIFIER" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.CameraNode.connection">
+<code class="descname">connection</code><span class="sig-paren">(</span><em>ind</em>, <em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.CameraNode.connection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.CameraNode.connection_append">
+<code class="descname">connection_append</code><span class="sig-paren">(</span><em>val</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.CameraNode.connection_append" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.CameraNode.connection_clear">
+<code class="descname">connection_clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.CameraNode.connection_clear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.CameraNode.connection_count">
+<code class="descname">connection_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.CameraNode.connection_count" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.CameraNode.connection_pop">
+<code class="descname">connection_pop</code><span class="sig-paren">(</span><em>ind=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.CameraNode.connection_pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.CameraNode.remap_ids">
+<code class="descname">remap_ids</code><span class="sig-paren">(</span><em>id_map</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.CameraNode.remap_ids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="dustmaker.Entity.Entity">
-<em class="property">class </em><code class="descclassname">dustmaker.Entity.</code><code class="descname">Entity</code><span class="sig-paren">(</span><em>type</em>, <em>rotation</em>, <em>unk1</em>, <em>unk2</em>, <em>unk3</em>, <em>unk4</em>, <em>vars</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.Entity" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">dustmaker.Entity.</code><code class="descname">Entity</code><span class="sig-paren">(</span><em>type</em>, <em>vars</em>, <em>rotation=0</em>, <em>unk1=0</em>, <em>unk2=0</em>, <em>unk3=0</em>, <em>unk4=0</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.Entity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="dustmaker.Entity.Entity.remap_ids">
+<code class="descname">remap_ids</code><span class="sig-paren">(</span><em>id_map</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.Entity.remap_ids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.Entity.translate">
+<code class="descname">translate</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.Entity.translate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dustmaker.Entity.LevelEnd">
+<em class="property">class </em><code class="descclassname">dustmaker.Entity.</code><code class="descname">LevelEnd</code><span class="sig-paren">(</span><em>vars</em>, <em>rotation=0</em>, <em>unk1=0</em>, <em>unk2=0</em>, <em>unk3=0</em>, <em>unk4=0</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.LevelEnd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#dustmaker.Entity.Entity" title="dustmaker.Entity.Entity"><code class="xref py py-class docutils literal"><span class="pre">dustmaker.Entity.Entity</span></code></a></p>
+<dl class="attribute">
+<dt id="dustmaker.Entity.LevelEnd.TYPE_IDENTIFIER">
+<code class="descname">TYPE_IDENTIFIER</code><em class="property"> = 'level_end'</em><a class="headerlink" href="#dustmaker.Entity.LevelEnd.TYPE_IDENTIFIER" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.LevelEnd.entity">
+<code class="descname">entity</code><span class="sig-paren">(</span><em>ind</em>, <em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.LevelEnd.entity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.LevelEnd.entity_append">
+<code class="descname">entity_append</code><span class="sig-paren">(</span><em>val</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.LevelEnd.entity_append" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.LevelEnd.entity_clear">
+<code class="descname">entity_clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.LevelEnd.entity_clear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.LevelEnd.entity_count">
+<code class="descname">entity_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.LevelEnd.entity_count" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.LevelEnd.entity_pop">
+<code class="descname">entity_pop</code><span class="sig-paren">(</span><em>ind=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.LevelEnd.entity_pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Entity.LevelEnd.remap_ids">
+<code class="descname">remap_ids</code><span class="sig-paren">(</span><em>id_map</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Entity.LevelEnd.remap_ids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </div>
@@ -150,77 +293,173 @@ val &#8211; The value of the integer.</p>
 <span id="dustmaker-map-module"></span><h2>dustmaker.Map module<a class="headerlink" href="#module-dustmaker.Map" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dustmaker.Map.Map">
-<em class="property">class </em><code class="descclassname">dustmaker.Map.</code><code class="descname">Map</code><span class="sig-paren">(</span><em>backdrop=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">dustmaker.Map.</code><code class="descname">Map</code><span class="sig-paren">(</span><em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Represents a Dustforce level.</p>
+<p>A map contains the following attributes:</p>
+<p>map.tiles - A dict mapping (layer, x, y) to Tile objects.
+map.props - A dict mapping prop ids to Prop objects.
+map.parent - For backdrops this is the containing map.  Otherwise this is</p>
+<blockquote>
+<div>set to None.</div></blockquote>
+<p>If the map is not a backdrop (i.e. map.parent == None) then the following
+attributes will also be available:</p>
+<p>map.entities - A dict mapping entity ids to Entity objects.
+map.backdrop - The backdrop Map object.  Backdrop maps can only contain</p>
+<blockquote>
+<div>tiles and props and each tile is the size of 16 tiles in
+the top level coordinate system.</div></blockquote>
+<dl class="docutils">
+<dt>map.vars - A raw mapping of string keys to Var objects.  Some of these</dt>
+<dd>variables have nicer accessors like map.name(...).</dd>
+<dt>map.sshot - The level thumbnail image.  This appears to be a PNG image</dt>
+<dd>with some custom or missing header.</dd>
+</dl>
 <dl class="method">
 <dt id="dustmaker.Map.Map.add_entity">
-<code class="descname">add_entity</code><span class="sig-paren">(</span><em>id</em>, <em>x</em>, <em>y</em>, <em>entity</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.add_entity" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">add_entity</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>entity</em>, <em>id=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.add_entity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a new entity to the map and returns its id.</p>
+<p>x - The x position in tile units of the entity.
+y - The y position in tile units of the entity.
+entity - The Entity object to add to the map.
+id - The entity identifier.  If set to None the identifier will be</p>
+<blockquote>
+<div>allocated for you.</div></blockquote>
+<p>Raises a MapException if the given id is already in use.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.add_prop">
-<code class="descname">add_prop</code><span class="sig-paren">(</span><em>id</em>, <em>layer</em>, <em>x</em>, <em>y</em>, <em>prop</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.add_prop" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">add_prop</code><span class="sig-paren">(</span><em>layer</em>, <em>x</em>, <em>y</em>, <em>prop</em>, <em>id=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.add_prop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a new prop to the map and returns its id.</p>
+<p>x - The x position in tile units of the prop.
+y - The y position in tile units of the prop.
+prop - The Prop object to add to the map.
+id - The prop identifier.  If set to None the identifier will be</p>
+<blockquote>
+<div>allocated for you.</div></blockquote>
+<p>Raises a MapException if the given id is already in use.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.add_tile">
 <code class="descname">add_tile</code><span class="sig-paren">(</span><em>layer</em>, <em>x</em>, <em>y</em>, <em>tile</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.add_tile" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a new tile to the map.</p>
+<p>layer - The layer to add the tile.
+x - The x position of the tile.
+y - The y position of the tile.
+tile - The tile to add to the map.</p>
+<p>Raises a MapException if the given position is already occupied.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Map.Map.delete_tile">
+<code class="descname">delete_tile</code><span class="sig-paren">(</span><em>layer</em>, <em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.delete_tile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the tile at the given position if present.</p>
+<p>layer - The layer to add the tile.
+x - The x position of the tile.
+y - The y position of the tile.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_entity">
 <code class="descname">get_entity</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_entity" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the Entity object with the given id or None.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_entity_xposition">
 <code class="descname">get_entity_xposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_entity_xposition" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the x position of the entity with the given id or None.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_entity_yposition">
 <code class="descname">get_entity_yposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_entity_yposition" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the y position of the entity with the given id or None.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_prop">
 <code class="descname">get_prop</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_prop" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the Prop object with the given id or None.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_prop_layer">
 <code class="descname">get_prop_layer</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_prop_layer" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the layer of the prop with the given id or None.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_prop_xposition">
 <code class="descname">get_prop_xposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_prop_xposition" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the x position of the prop with the given id or None.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_prop_yposition">
 <code class="descname">get_prop_yposition</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_prop_yposition" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the y position of the prop with the given id or None.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.get_tile">
 <code class="descname">get_tile</code><span class="sig-paren">(</span><em>layer</em>, <em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.get_tile" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the tile at the given position or None.</p>
+<p>layer - The layer to add the tile.
+x - The x position of the tile.
+y - The y position of the tile.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Map.Map.merge_map">
+<code class="descname">merge_map</code><span class="sig-paren">(</span><em>map</em>, <em>_do_remap_ids=True</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.merge_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merge a map into this one.</p>
+<p>map - The Map to merge into this one.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.name">
 <code class="descname">name</code><span class="sig-paren">(</span><em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the level name.</p>
+<p>val - If not None sets the new name of the Map.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Map.Map.remap_ids">
+<code class="descname">remap_ids</code><span class="sig-paren">(</span><em>min_id=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.remap_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remap prop and entity ids starting at min_id.</p>
+<p>This calls through to all entities to remap any references to other
+entity ids.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.start_position">
 <code class="descname">start_position</code><span class="sig-paren">(</span><em>val=None</em>, <em>player=1</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.start_position" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the starting position of a player as a tuple of floats.</p>
+<p>val - If not None sets the new player position.
+player - The player ID to set the position of.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dustmaker.Map.Map.translate">
+<code class="descname">translate</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.translate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Translate the entire map x tiles laterally and y tiles horizontally.</p>
+<dl class="docutils">
+<dt>x - The number of tiles to move laterally.  If a float tiles will be</dt>
+<dd>moved by the nearest integer.</dd>
+<dt>y - The number of tiles to move horizontally.  If a float tiles will be</dt>
+<dd>moved by the nearest integer.</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="dustmaker.Map.Map.virtual_character">
 <code class="descname">virtual_character</code><span class="sig-paren">(</span><em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dustmaker.Map.Map.virtual_character" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns True if the map uses virtual characters.</p>
+<p>val - If not None sets the virtual character flag for the map.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -350,10 +589,10 @@ approximately the angle of the circle surface where its label is.:</p>
       +7+     +3+
      +           +
     +             +
-   B               C 
+   B               C
   +                 +
  +                   +
- 2                   6 
+ 2                   6
  +                   +
 +                     +
 +                     +
@@ -364,11 +603,11 @@ approximately the angle of the circle surface where its label is.:</p>
  8                   4
  +                   +
   +                 +
-   A               D 
+   A               D
     +             +
      +           +
       +1+     +5+
-         +++++``
+         +++++
 </pre></div>
 </div>
 </dd></dl>
