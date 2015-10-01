@@ -141,9 +141,9 @@ def _read_segment(reader, map, xoffset, yoffset):
       prop_index = reader.read(12)
       palette = reader.read(8)
 
-      map.add_prop(id, layer, xpos / 48, ypos / 48, Prop(
+      map.add_prop(layer, xpos / 48, ypos / 48, Prop(
                    layer_sub, rotation, scale_x, scale_y,
-                   prop_set, prop_group, prop_index, palette))
+                   prop_set, prop_group, prop_index, palette), id)
 
   if flags & 4:
     entities = reader.read(16)
@@ -162,8 +162,8 @@ def _read_segment(reader, map, xoffset, yoffset):
       unk4 = reader.read(1)
       vars = _read_var_map(reader)
 
-      map.add_entity(id, xpos / 48, ypos / 48, Entity._from_raw(
-                     type, vars, rotation, unk1, unk2, unk3, unk4))
+      map.add_entity(xpos / 48, ypos / 48, Entity._from_raw(
+                     type, vars, rotation, unk1, unk2, unk3, unk4), id)
 
 def _read_region(reader, map):
   region_len = reader.read(32)
@@ -193,7 +193,7 @@ def _read_metadata(reader):
   unk3 = reader.read(32)
   unk4 = reader.read(32)
   return {
-    'version': version, 
+    'version': version,
     'unk1': unk1,
     'unk2': unk2,
     'unk3': unk3,

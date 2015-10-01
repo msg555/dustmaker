@@ -37,10 +37,10 @@ class TileShape(IntEnum):
              +7+     +3+
             +           +
            +             +
-          B               C 
+          B               C
          +                 +
         +                   +
-        2                   6 
+        2                   6
         +                   +
        +                     +
        +                     +
@@ -51,7 +51,7 @@ class TileShape(IntEnum):
         8                   4
         +                   +
          +                 +
-          A               D 
+          A               D
            +             +
             +           +
              +1+     +5+
@@ -80,27 +80,27 @@ class TileShape(IntEnum):
   HALF_D = 20
 
 tile_maximal_bits = [
-  [ 15, 15, 15, 15, ], # TileShape.FULL: 
-  [ 7, 15, 15, 0, ], # TileShape.BIG_1: 
-  [ 11, 15, 0, 0, ], # TileShape.SMALL_1: 
-  [ 15, 0, 15, 7, ], # TileShape.BIG_2: 
+  [ 15, 15, 15, 15, ], # TileShape.FULL:
+  [ 7, 15, 15, 0, ], # TileShape.BIG_1:
+  [ 11, 15, 0, 0, ], # TileShape.SMALL_1:
+  [ 15, 0, 15, 7, ], # TileShape.BIG_2:
   [ 0, 0, 15, 11, ], # TileShape.SMALL_2:
-  [ 15, 11, 0, 15, ], # TileShape.BIG_3: 
-  [ 15, 7, 0, 0, ], # TileShape.SMALL_3: 
-  [ 0, 15, 11, 15, ], # TileShape.BIG_4: 
-  [ 0, 0, 7, 15, ], # TileShape.SMALL_4: 
-  [ 11, 15, 0, 15, ], # TileShape.BIG_5: 
-  [ 7, 15, 0, 0, ], # TileShape.SMALL_5: 
-  [ 15, 0, 7, 15, ], # TileShape.BIG_6: 
-  [ 0, 0, 11, 15, ], # TileShape.SMALL_6: 
-  [ 15, 7, 15, 0, ], # TileShape.BIG_7: 
+  [ 15, 11, 0, 15, ], # TileShape.BIG_3:
+  [ 15, 7, 0, 0, ], # TileShape.SMALL_3:
+  [ 0, 15, 11, 15, ], # TileShape.BIG_4:
+  [ 0, 0, 7, 15, ], # TileShape.SMALL_4:
+  [ 11, 15, 0, 15, ], # TileShape.BIG_5:
+  [ 7, 15, 0, 0, ], # TileShape.SMALL_5:
+  [ 15, 0, 7, 15, ], # TileShape.BIG_6:
+  [ 0, 0, 11, 15, ], # TileShape.SMALL_6:
+  [ 15, 7, 15, 0, ], # TileShape.BIG_7:
   [ 15, 11, 0, 0, ], # TileShape.SMALL_7:
-  [ 0, 15, 15, 11, ], # TileShape.BIG_8: 
-  [ 0, 0, 15, 7, ], # TileShape.SMALL_8: 
-  [ 15, 15, 15, 0, ], # TileShape.HALF_A: 
-  [ 15, 15, 15, 0, ], # TileShape.HALF_B: 
+  [ 0, 15, 15, 11, ], # TileShape.BIG_8:
+  [ 0, 0, 15, 7, ], # TileShape.SMALL_8:
+  [ 15, 15, 15, 0, ], # TileShape.HALF_A:
+  [ 15, 15, 15, 0, ], # TileShape.HALF_B:
   [ 15, 15, 0, 15, ], # TileShape.HALF_C:
-  [ 15, 15, 0, 15, ], # TileShape.HALF_D: 
+  [ 15, 15, 0, 15, ], # TileShape.HALF_D:
 ]
 
 class Tile:

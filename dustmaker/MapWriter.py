@@ -225,19 +225,19 @@ def _compute_region_map(map):
     seg = _segment_get(_region_get(region_map, x, y)['segments'], x, y)
     seg['tiles'][layer].append((x & 0xF, y & 0xF, tile))
 
-  for id in map.entity_map.keys():
+  for id in map.entities.keys():
     x = map.get_entity_xposition(id)
     y = map.get_entity_yposition(id)
     seg = _segment_get(_region_get(region_map, x, y)['segments'], x, y)
     seg['entities'].append((id, x, y, map.get_entity(id)))
 
-  for id in map.prop_map.keys():
+  for id in map.props.keys():
     x = map.get_prop_xposition(id)
     y = map.get_prop_yposition(id)
     layer = map.get_prop_layer(id)
     seg = _segment_get(_region_get(region_map, x, y)['segments'], x, y)
     seg['props'].append((id, layer, x, y, map.get_prop(id)))
-    
+
   if map.backdrop:
     for (coord, tile) in map.backdrop.tiles.items():
       layer = coord[0]
@@ -247,7 +247,7 @@ def _compute_region_map(map):
       seg['present'] = True
       seg['tiles'][layer].append((x & 0xF, y & 0xF, tile))
 
-    for id in map.backdrop.prop_map:
+    for id in map.backdrop.props.keys():
       x = map.backdrop.get_prop_xposition(id)
       y = map.backdrop.get_prop_yposition(id)
       layer = map.backdrop.get_prop_layer(id)
@@ -292,7 +292,7 @@ def write_map(map):
     reg_data = _write_region(coord[0], coord[1], region_map[coord])
     writer_back.write(32, len(reg_data) + 4)
     writer_back.write_bytes(reg_data)
-    
+
   writer_header = BitWriter()
   writer_header.write(32, len(region_map))
   _write_metadata(writer_header, var_size, map)

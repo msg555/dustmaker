@@ -60,7 +60,7 @@ class AIController(Entity):
     return (result[0] / 48, result[1] / 48)
 
   def node_append(self, val):
-    self.vars['nodes'].value[1].append(Var(VarType.VEC2, 
+    self.vars['nodes'].value[1].append(Var(VarType.VEC2,
                                            (val[0] * 48, val[1] * 48)))
 
   def node_pop(self, ind = None):
@@ -70,7 +70,6 @@ class AIController(Entity):
     self.vars['nodes'].value[1] = []
 
   def translate(self, x, y):
-    print("Translate controller")
     super(AIController, self).translate(x, y)
     for i in range(self.node_count()):
       pos = self.node_position(i)
@@ -111,7 +110,7 @@ class CameraNode(Entity):
 
   def remap_ids(self, id_map):
     for i in range(self.connection_count()):
-      self.connection(id_map[self.connection()])
+      self.connection(i, id_map[self.connection(i)])
 
 known_types.append(CameraNode)
 
@@ -145,6 +144,6 @@ class LevelEnd(Entity):
 
   def remap_ids(self, id_map):
     for i in range(self.entity_count()):
-      self.entity(id_map[self.entity()])
+      self.entity(i, id_map[self.entity(i)])
 
 known_types.append(LevelEnd)
