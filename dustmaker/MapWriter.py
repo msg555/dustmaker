@@ -99,7 +99,8 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
             edge = tile.edge_filth_sprite(side)
             if edge[0] != TileSpriteSet.none_0 and not edge[1]:
               dust_filth += 1
-            if tile.edge_bits(side) == 0xF:
+            if ((tile.edge_bits(side) & 0x3) == 0x3 and
+                not tile.edge_filth_sprite(side)[1]):
               tile_surface += 1
         writer.write(5, x)
         writer.write(5, y)
@@ -155,7 +156,6 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
       writer.write(1, entity.unk2)
       writer.write(1, entity.unk3)
       writer.write(1, entity.unk4)
-      print(entity)
       _write_var_map(writer, entity.vars)
 
   writer_body = writer

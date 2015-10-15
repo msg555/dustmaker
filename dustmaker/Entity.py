@@ -37,7 +37,7 @@ class AIController(Entity):
   def __init__(self, type, vars, rotation = 0,
                unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
     if not 'puppet_id' in vars:
-      vars['puppet_id'] = Var(VarType.UINT, 0)
+      vars['puppet_id'] = Var(VarType.INT, 0)
     if not 'nodes' in vars:
       vars['nodes'] = Var(VarType.ARRAY, (VarType.VEC2, []))
     super(AIController, self).__init__(self.TYPE_IDENTIFIER, vars, rotation,
@@ -89,7 +89,7 @@ class CameraNode(Entity):
   def __init__(self, type, vars, rotation = 0,
                unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
     if not 'c_node_ids' in vars:
-      vars['c_node_ids'] = Var(VarType.ARRAY, (VarType.UINT, []))
+      vars['c_node_ids'] = Var(VarType.ARRAY, (VarType.INT, []))
     super(CameraNode, self).__init__(self.TYPE_IDENTIFIER, vars, rotation,
                                      unk1, unk2, unk3, unk4)
 
@@ -99,17 +99,17 @@ class CameraNode(Entity):
   def connection(self, ind, val = None):
     result = self.vars['c_node_ids'].value[1][ind].value
     if not val is None:
-      self.vars['c_node_ids'].value[1][ind] = Var(VarType.UINT, val)
+      self.vars['c_node_ids'].value[1][ind] = Var(VarType.INT, val)
     return result
 
   def connection_append(self, val):
-    self.vars['c_node_ids'].value[1].append(Var(VarType.UINT, val))
+    self.vars['c_node_ids'].value[1].append(Var(VarType.INT, val))
 
   def connection_pop(self, ind = None):
     return self.vars['c_node_ids'].value[1].pop(ind).value
 
   def connection_clear(self):
-    self.vars['c_node_ids'].value = (VarType.UINT, [])
+    self.vars['c_node_ids'].value = (VarType.INT, [])
 
   def remap_ids(self, id_map):
     for i in range(self.connection_count()):
@@ -123,7 +123,7 @@ class LevelEnd(Entity):
   def __init__(self, type, vars, rotation = 0,
                unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
     if not 'ent_list' in vars:
-      vars['ent_list'] = Var(VarType.ARRAY, (VarType.UINT, []))
+      vars['ent_list'] = Var(VarType.ARRAY, (VarType.INT, []))
     super(LevelEnd, self).__init__(self.TYPE_IDENTIFIER, vars, rotation,
                                      unk1, unk2, unk3, unk4)
 
@@ -133,11 +133,11 @@ class LevelEnd(Entity):
   def entity(self, ind, val = None):
     result = self.vars['ent_list'].value[1][ind].value
     if not val is None:
-      self.vars['ent_list'].value[1][ind] = Var(VarType.UINT, val)
+      self.vars['ent_list'].value[1][ind] = Var(VarType.INT, val)
     return result
 
   def entity_append(self, val):
-    self.vars['ent_list'].value[1].append(Var(VarType.UINT, val))
+    self.vars['ent_list'].value[1].append(Var(VarType.INT, val))
 
   def entity_pop(self, ind = None):
     return self.vars['ent_list'].value[1].pop(ind).value
@@ -159,7 +159,7 @@ class EnemyLightPrism(Enemy):
   TYPE_IDENTIFIER = "enemy_tutorial_square"
 
 class EnemyHeavyPrism(Enemy):
-  TYPE_IDENTIFIER = "enemy_tutorial_square"
+  TYPE_IDENTIFIER = "enemy_tutorial_hexagon"
   def combo(self): return 3
 
 class EnemySlimeBeast(Enemy):
@@ -251,7 +251,7 @@ class EnemyGargoyleBig(Enemy):
 
 class EnemyGargoyleSmall(Enemy):
   TYPE_IDENTIFIER = "enemy_gargoyle_small"
-  def filth(self): return 5
+  def filth(self): return 3
 
 class EnemyBook(Enemy):
   TYPE_IDENTIFIER = "enemy_book"
