@@ -101,7 +101,7 @@ class Map:
 
         Raises a MapException if the given id is already in use.
     """
-    if id is None:
+    if id is None or id in self.entities:
       id = self._next_id()
     else:
       self._note_id(id)
@@ -121,12 +121,7 @@ class Map:
 
         Raises a MapException if the given id is already in use.
     """
-    if id is None:
-      id = self._next_id()
-    else:
-      self._note_id(id)
-    if id in self.props:
-      raise MapException("map already has id")
+    id = self._next_id()
     self.props[id] = (layer, x, y, prop)
     return id
 

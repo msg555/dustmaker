@@ -90,11 +90,11 @@ def _read_segment(reader, map, xoffset, yoffset):
 
   if version > 4:
     unk2 = reader.read(32)
-    unk3 = reader.read(16)
-    unk4 = reader.read(16)
+    dust_filth = reader.read(16)
+    enemy_filth = reader.read(16)
   if version > 5:
-    unk5 = reader.read(16)
-    unk6 = reader.read(16)
+    tile_surface = reader.read(16)
+    dustblock_filth = reader.read(16)
 
   flags = reader.read(32)
   if flags & 1:
@@ -120,7 +120,7 @@ def _read_segment(reader, map, xoffset, yoffset):
       data = reader.read_bytes(12)
       tile = map.get_tile(19, xoffset + xpos, yoffset + ypos)
       if tile != None:
-        tile.dust_data = data
+        tile.dust_data = bytearray(data)
 
   if flags & 8:
     props = reader.read(16)

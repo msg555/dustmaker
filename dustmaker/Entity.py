@@ -7,7 +7,7 @@ class Entity:
   def _from_raw(type, vars, rotation, unk1, unk2, unk3, unk4):
     for class_type in known_types:
       if type == class_type.TYPE_IDENTIFIER:
-        return class_type(vars, rotation, unk1, unk2, unk3, unk4)
+        return class_type(type, vars, rotation, unk1, unk2, unk3, unk4)
     return Entity(type, vars, rotation, unk1, unk2, unk3, unk4)
 
   def __init__(self, type, vars, rotation = 0,
@@ -34,7 +34,7 @@ class Entity:
 class AIController(Entity):
   TYPE_IDENTIFIER = "AI_controller"
 
-  def __init__(self, vars, rotation = 0,
+  def __init__(self, type, vars, rotation = 0,
                unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
     if not 'puppet_id' in vars:
       vars['puppet_id'] = Var(VarType.UINT, 0)
@@ -76,14 +76,17 @@ class AIController(Entity):
       self.node_position(i, (pos[0] + x, pos[1] + y))
 
   def remap_ids(self, id_map):
-    self.puppet(id_map[self.puppet()])
+    if self.puppet() in id_map:
+      self.puppet(id_map[self.puppet()])
+    else:
+      self.puppet(-1)
 
 known_types.append(AIController)
 
 class CameraNode(Entity):
   TYPE_IDENTIFIER = "camera_node"
 
-  def __init__(self, vars, rotation = 0,
+  def __init__(self, type, vars, rotation = 0,
                unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
     if not 'c_node_ids' in vars:
       vars['c_node_ids'] = Var(VarType.ARRAY, (VarType.UINT, []))
@@ -106,7 +109,7 @@ class CameraNode(Entity):
     return self.vars['c_node_ids'].value[1].pop(ind).value
 
   def connection_clear(self):
-    self.vars['c_node_ids'].value[1] = []
+    self.vars['c_node_ids'].value = (VarType.UINT, [])
 
   def remap_ids(self, id_map):
     for i in range(self.connection_count()):
@@ -117,7 +120,7 @@ known_types.append(CameraNode)
 class LevelEnd(Entity):
   TYPE_IDENTIFIER = "level_end"
 
-  def __init__(self, vars, rotation = 0,
+  def __init__(self, type, vars, rotation = 0,
                unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
     if not 'ent_list' in vars:
       vars['ent_list'] = Var(VarType.ARRAY, (VarType.UINT, []))
@@ -147,3 +150,137 @@ class LevelEnd(Entity):
       self.entity(i, id_map[self.entity(i)])
 
 known_types.append(LevelEnd)
+
+class Enemy(Entity):
+  def filth(self): return 1
+  def combo(self): return self.filth()
+
+class EnemyLightPrism(Enemy):
+  TYPE_IDENTIFIER = "enemy_tutorial_square"
+
+class EnemyHeavyPrism(Enemy):
+  TYPE_IDENTIFIER = "enemy_tutorial_square"
+  def combo(self): return 3
+
+class EnemySlimeBeast(Enemy):
+  TYPE_IDENTIFIER = "enemy_slime_beast"
+  def filth(self): return 9
+
+class EnemySlimeBarrel(Enemy):
+  TYPE_IDENTIFIER = "enemy_slime_barrel"
+  def filth(self): return 3
+
+class EnemySpringBall(Enemy):
+  TYPE_IDENTIFIER = "enemy_spring_ball"
+  def filth(self): return 5
+
+class EnemySlimeBall(Enemy):
+  TYPE_IDENTIFIER = "enemy_slime_ball"
+  def filth(self): return 3
+
+class EnemyTrashTire(Enemy):
+  TYPE_IDENTIFIER = "enemy_trash_tire"
+  def filth(self): return 3
+
+class EnemyTrashBeast(Enemy):
+  TYPE_IDENTIFIER = "enemy_trash_beast"
+  def filth(self): return 9
+
+class EnemyTrashCan(Enemy):
+  TYPE_IDENTIFIER = "enemy_trash_can"
+  def filth(self): return 9
+
+class EnemyTrashBall(Enemy):
+  TYPE_IDENTIFIER = "enemy_trash_ball"
+  def filth(self): return 3
+
+class EnemyBear(Enemy):
+  TYPE_IDENTIFIER = "enemy_bear"
+  def filth(self): return 9
+
+class EnemyTotemLarge(Enemy):
+  TYPE_IDENTIFIER = "enemy_stoneboss"
+  def filth(self): return 12
+
+class EnemyTotemSmall(Enemy):
+  TYPE_IDENTIFIER = "enemy_stonebro"
+  def filth(self): return 3
+
+class EnemyPorcupine(Enemy):
+  TYPE_IDENTIFIER = "enemy_porcupine"
+
+class EnemyWolf(Enemy):
+  TYPE_IDENTIFIER = "enemy_wolf"
+  def filth(self): return 5
+
+class EnemyTurkey(Enemy):
+  TYPE_IDENTIFIER = "enemy_critter"
+  def filth(self): return 3
+
+class EnemyFlag(Enemy):
+  TYPE_IDENTIFIER = "enemy_flag"
+  def filth(self): return 5
+
+class EnemyScroll(Enemy):
+  TYPE_IDENTIFIER = "enemy_scrolls"
+
+class EnemyTreasure(Enemy):
+  TYPE_IDENTIFIER = "enemy_treasure"
+
+class EnemyChestTreasure(Enemy):
+  TYPE_IDENTIFIER = "enemy_chest_treasure"
+  def filth(self): return 9
+
+class EnemyChestScrolls(Enemy):
+  TYPE_IDENTIFIER = "enemy_chest_scrolls"
+  def filth(self): return 9
+
+class EnemyButler(Enemy):
+  TYPE_IDENTIFIER = "enemy_butler"
+
+class EnemyMaid(Enemy):
+  TYPE_IDENTIFIER = "enemy_maid"
+
+class EnemyKnight(Enemy):
+  TYPE_IDENTIFIER = "enemy_knight"
+  def filth(self): return 9
+
+class EnemyGargoyleBig(Enemy):
+  TYPE_IDENTIFIER = "enemy_gargoyle_big"
+  def filth(self): return 5
+
+class EnemyGargoyleSmall(Enemy):
+  TYPE_IDENTIFIER = "enemy_gargoyle_small"
+  def filth(self): return 5
+
+class EnemyBook(Enemy):
+  TYPE_IDENTIFIER = "enemy_book"
+  def filth(self): return 3
+
+known_types.append(EnemyLightPrism)
+known_types.append(EnemyHeavyPrism)
+known_types.append(EnemySlimeBeast)
+known_types.append(EnemySlimeBarrel)
+known_types.append(EnemySpringBall)
+known_types.append(EnemySlimeBall)
+known_types.append(EnemyTrashTire)
+known_types.append(EnemyTrashBeast)
+known_types.append(EnemyTrashCan)
+known_types.append(EnemyTrashBall)
+known_types.append(EnemyBear)
+known_types.append(EnemyTotemLarge)
+known_types.append(EnemyTotemSmall)
+known_types.append(EnemyPorcupine)
+known_types.append(EnemyWolf)
+known_types.append(EnemyTurkey)
+known_types.append(EnemyFlag)
+known_types.append(EnemyScroll)
+known_types.append(EnemyTreasure)
+known_types.append(EnemyChestTreasure)
+known_types.append(EnemyChestScrolls)
+known_types.append(EnemyButler)
+known_types.append(EnemyMaid)
+known_types.append(EnemyKnight)
+known_types.append(EnemyGargoyleBig)
+known_types.append(EnemyGargoyleSmall)
+known_types.append(EnemyBook)

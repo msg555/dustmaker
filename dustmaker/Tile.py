@@ -2,12 +2,14 @@ from enum import IntEnum
 
 class TileSpriteSet(IntEnum):
   """ Used to describe what set of tiles a tile's sprite comes from. """
-  none = 0
+  none_0 = 0
   mansion = 1
   forest = 2
   city = 3
   laboratory = 4
   tutorial = 5
+  nexus = 6
+  none_7 = 7
 
 class TileSide(IntEnum):
   TOP = 0
@@ -151,7 +153,7 @@ class Tile:
       self.tile_data = bytearray(_tile_data)
 
     if _dust_data is None:
-      self.dust_data = None
+      self.dust_data = bytearray(12)
     else:
       self.dust_data = bytearray(_dust_data)
 
@@ -226,3 +228,37 @@ class Tile:
     """
     return "area/%s/tiles/tile%d_%d_0001.png" % (
         self.sprite_set().name, self.sprite_tile(), self.sprite_palette() + 1)
+
+
+  def has_filth(self):
+    return self.dust_data[0] != 0 or self.dust_data[1] != 0
+
+  def edge_filth_sprite(self, side, sprite_set = None, spikes = None):
+    ind = side // 2
+    shft = 4 * (side % 2)
+    result = (self.dust_data[ind] >> shft) & 0xF
+    if not sprite_set is None and not spikes is None:
+      val = sprite_set | (0x8 if spikes else 0x0)
+      self.dust_data[ind] &= 0xF0 >> shft
+      self.dust_data[ind] |= val << shft
+    return (TileSpriteSet(result & 0x7), (result & 0x8) != 0)
+
+  def edge_filth_cap(self, side, val = None):
+    shft = 2 * side
+    result = (self.dust_data[10] >> shft) & 0x3
+    if not val is None:
+      self.dust_data[10] &= ~(0x3 << shft)
+      self.dust_data[10] |= val << shft
+    return result
+
+  def is_dustblock(self):
+    dustblocks = {
+      TileSpriteSet.mansion: 21,
+      TileSpriteSet.forest: 1,
+      TileSpriteSet.city: 6,
+      TileSpriteSet.laboratory: 9,
+      TileSpriteSet.tutorial: 2,
+    }
+    st = self.sprite_set()
+    tl = self.sprite_tile()
+    return dustblocks.get(st, -1) == tl

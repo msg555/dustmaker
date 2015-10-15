@@ -1,7 +1,7 @@
 from .Map import Map
-from .Tile import Tile
+from .Tile import Tile, TileSide, TileSpriteSet
 from .Prop import Prop
-from .Entity import Entity
+from .Entity import Entity, Enemy
 from .Var import Var, VarType
 from .BitWriter import BitWriter
 from .MapException import MapParseException
@@ -78,6 +78,8 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
   flags = 0
   tiles = [(i, segment['tiles'][i]) for i in range(21) if segment['tiles'][i]]
 
+  (dust_filth, enemy_filth, tile_surface, dustblock_filth) = (0, 0, 0, 0)
+
   dusts = []
   if tiles:
     flags |= 1
@@ -88,8 +90,17 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
       writer.write(10, len(tilelayer))
 
       for (x, y, tile) in sorted(tilelayer, key = lambda x: (x[1], x[0])):
-        if layer == 19 and tile.dust_data != None:
+        if layer == 19 and tile.has_filth():
           dusts.append((x, y, tile))
+        if layer == 19:
+          if tile.is_dustblock():
+            dustblock_filth += 1
+          for side in TileSide:
+            edge = tile.edge_filth_sprite(side)
+            if edge[0] != TileSpriteSet.none_0 and not edge[1]:
+              dust_filth += 1
+            if tile.edge_bits(side) == 0xF:
+              tile_surface += 1
         writer.write(5, x)
         writer.write(5, y)
         writer.write(8, tile.shape | 0x80)
@@ -133,6 +144,8 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
 
     writer.write(16, len(segment['entities']))
     for (id, x, y, entity) in segment['entities']:
+      if isinstance(entity, Enemy):
+        enemy_filth += entity.filth()
       writer.write(32, id)
       _write_6bit_str(writer, entity.type)
       _write_float(writer, 32, 8, x * 48)
@@ -142,6 +155,7 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
       writer.write(1, entity.unk2)
       writer.write(1, entity.unk3)
       writer.write(1, entity.unk4)
+      print(entity)
       _write_var_map(writer, entity.vars)
 
   writer_body = writer
@@ -154,11 +168,11 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
   writer.write(8, 16)
 
   writer.write(32, 0)
-  writer.write(16, 0)
-  writer.write(16, 0)
+  writer.write(16, dust_filth)
+  writer.write(16, enemy_filth)
 
-  writer.write(16, 25)
-  writer.write(16, 0)
+  writer.write(16, tile_surface)
+  writer.write(16, dustblock_filth)
 
   writer.write(32, flags)
   writer.write_bytes(writer_body.bytes())
@@ -178,7 +192,7 @@ def _write_region(x, y, region):
   writer_header.write(32, writer.byte_count())
   writer_header.write(16, x)
   writer_header.write(16, y)
-  writer_header.write(16, 0)
+  writer_header.write(16, 14)
   writer_header.write(16, len(region['segments']))
   writer_header.write(8, 1 if region['backdrop']['present'] else 0)
 
