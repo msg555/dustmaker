@@ -254,7 +254,7 @@ class Tile:
   def is_dustblock(self):
     dustblocks = {
       TileSpriteSet.mansion: 21,
-      TileSpriteSet.forest: 1,
+      TileSpriteSet.forest: 13,
       TileSpriteSet.city: 6,
       TileSpriteSet.laboratory: 9,
       TileSpriteSet.tutorial: 2,
@@ -262,3 +262,31 @@ class Tile:
     st = self.sprite_set()
     tl = self.sprite_tile()
     return dustblocks.get(st, -1) == tl
+
+  def flip_horizontal(self):
+    if self.shape == TileShape.FULL:
+      pass
+    elif self.shape <= TileShape.SMALL_8:
+      self.shape = 1 + ((self.shape - TileShape.BIG_1) ^ 8) % 16
+    else:
+      self.shape = 17 + ((self.shape - TileShape.HALF_A) ^ 3)
+    self.edge_bits(TileSide.LEFT, self.edge_bits(TileSide.RIGHT,
+                   self.edge_bits(TileSide.LEFT)))
+    self.edge_filth_sprite(TileSide.LEFT, *self.edge_filth_sprite(TileSide.RIGHT,
+                   *self.edge_filth_sprite(TileSide.LEFT)))
+    self.edge_filth_cap(TileSide.LEFT, self.edge_filth_cap(TileSide.RIGHT,
+                   self.edge_filth_cap(TileSide.LEFT)))
+
+  def flip_vertical(self):
+    if self.shape == TileShape.FULL:
+      pass
+    elif self.shape <= TileShape.SMALL_8:
+      self.shape = 1 + ((self.shape - TileShape.BIG_1) ^ 12)
+    else:
+      self.shape = 17 + ((self.shape - TileShape.HALF_A) ^ 1)
+    self.edge_bits(TileSide.TOP, self.edge_bits(TileSide.BOTTOM,
+                   self.edge_bits(TileSide.TOP)))
+    self.edge_filth_sprite(TileSide.TOP, *self.edge_filth_sprite(TileSide.BOTTOM,
+                   *self.edge_filth_sprite(TileSide.TOP)))
+    self.edge_filth_cap(TileSide.TOP, self.edge_filth_cap(TileSide.BOTTOM,
+                   self.edge_filth_cap(TileSide.TOP)))

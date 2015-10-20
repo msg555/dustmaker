@@ -9,3 +9,11 @@ class Prop:
     self.prop_group = prop_group
     self.prop_index = prop_index
     self.palette = palette
+
+  def flip_horizontal(self):
+    self.scale_x = not self.scale_x
+    self.rotation = -self.rotation & 0xFFFF
+
+  def flip_vertical(self):
+    self.rotation = self.rotation + (1 << 15) & 0xFFFF
+    self.flip_horizontal()

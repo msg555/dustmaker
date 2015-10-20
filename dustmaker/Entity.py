@@ -7,12 +7,15 @@ class Entity:
   def _from_raw(type, vars, rotation, unk1, unk2, unk3, unk4):
     for class_type in known_types:
       if type == class_type.TYPE_IDENTIFIER:
-        return class_type(type, vars, rotation, unk1, unk2, unk3, unk4)
-    return Entity(type, vars, rotation, unk1, unk2, unk3, unk4)
+        return class_type(vars, rotation, unk1, unk2, unk3, unk4)
+    entity = Entity(vars, rotation, unk1, unk2, unk3, unk4)
+    entity.type = type
+    return entity
 
-  def __init__(self, type, vars, rotation = 0,
-               unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
-    self.type = type
+  def __init__(self, vars = {}, rotation = 0,
+               unk1 = 18, unk2 = 1, unk3 = 1, unk4 = 1):
+    if hasattr(self, "TYPE_IDENTIFIER"):
+      self.type = self.TYPE_IDENTIFIER
     self.vars = vars
     self.rotation = rotation
     self.unk1 = unk1
@@ -31,17 +34,49 @@ class Entity:
   def remap_ids(self, id_map):
     pass
 
+  def flip_horizontal(self):
+    self.unk3 = 1 - self.unk3
+    self.rotation = -self.rotation & 0xFFFF
+
+  def flip_vertical(self):
+    self.rotation = self.rotation + (1 << 15) & 0xFFFF
+    self.flip_horizontal()
+
+class DeathZone(Entity):
+  TYPE_IDENTIFIER = "kill_box"
+
+  def __init__(self, vars, rotation = 0,
+               unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
+    if not 'width' in vars:
+      vars['width'] = Var(VarType.INT, 1)
+    if not 'height' in vars:
+      vars['height'] = Var(VarType.INT, 1)
+    super(DeathZone, self).__init__(vars, rotation, unk1, unk2, unk3, unk4)
+
+  def width(self, val = None):
+    result = self.vars['width'].value / 48.0
+    if not val is None:
+      self.vars['width'].value = round(val * 48)
+    return result
+
+  def height(self, val = None):
+    result = self.vars['height'].value / 48.0
+    if not val is None:
+      self.vars['height'].value = round(val * 48)
+    return result
+
+known_types.append(DeathZone)
+
 class AIController(Entity):
   TYPE_IDENTIFIER = "AI_controller"
 
-  def __init__(self, type, vars, rotation = 0,
+  def __init__(self, vars, rotation = 0,
                unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
     if not 'puppet_id' in vars:
       vars['puppet_id'] = Var(VarType.INT, 0)
     if not 'nodes' in vars:
       vars['nodes'] = Var(VarType.ARRAY, (VarType.VEC2, []))
-    super(AIController, self).__init__(self.TYPE_IDENTIFIER, vars, rotation,
-                                       unk1, unk2, unk3, unk4)
+    super(AIController, self).__init__(vars, rotation, unk1, unk2, unk3, unk4)
 
   def puppet(self, val = None):
     result = self.vars['puppet_id'].value
@@ -81,17 +116,28 @@ class AIController(Entity):
     else:
       self.puppet(-1)
 
+  def flip_horizontal(self):
+    for i in range(self.node_count()):
+      pos = self.node_position(i)
+      self.node_position(i, (-pos[0], pos[1]))
+    super(AIController, self).flip_horizontal()
+
+  def flip_vertical(self):
+    for i in range(self.node_count()):
+      pos = self.node_position(i)
+      self.node_position(i, (pos[0], -pos[1]))
+    super(AIController, self).flip_horizontal()
+
 known_types.append(AIController)
 
 class CameraNode(Entity):
   TYPE_IDENTIFIER = "camera_node"
 
-  def __init__(self, type, vars, rotation = 0,
+  def __init__(self, vars, rotation = 0,
                unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
     if not 'c_node_ids' in vars:
       vars['c_node_ids'] = Var(VarType.ARRAY, (VarType.INT, []))
-    super(CameraNode, self).__init__(self.TYPE_IDENTIFIER, vars, rotation,
-                                     unk1, unk2, unk3, unk4)
+    super(CameraNode, self).__init__(vars, rotation, unk1, unk2, unk3, unk4)
 
   def connection_count(self):
     return len(self.vars['c_node_ids'].value[1])
@@ -120,12 +166,11 @@ known_types.append(CameraNode)
 class LevelEnd(Entity):
   TYPE_IDENTIFIER = "level_end"
 
-  def __init__(self, type, vars, rotation = 0,
+  def __init__(self, vars, rotation = 0,
                unk1 = 0, unk2 = 0, unk3 = 0, unk4 = 0):
     if not 'ent_list' in vars:
       vars['ent_list'] = Var(VarType.ARRAY, (VarType.INT, []))
-    super(LevelEnd, self).__init__(self.TYPE_IDENTIFIER, vars, rotation,
-                                     unk1, unk2, unk3, unk4)
+    super(LevelEnd, self).__init__(vars, rotation, unk1, unk2, unk3, unk4)
 
   def entity_count(self):
     return len(self.vars['ent_list'].value[1])
@@ -152,6 +197,10 @@ class LevelEnd(Entity):
 known_types.append(LevelEnd)
 
 class Enemy(Entity):
+  def __init__(self, vars = {}, rotation = 0, unk1 = 18, unk2 = 1,
+               unk3 = 1, unk4 = 1):
+    super(Enemy, self).__init__(vars, rotation, unk1, unk2, unk3, unk4)
+
   def filth(self): return 1
   def combo(self): return self.filth()
 
@@ -257,6 +306,10 @@ class EnemyBook(Enemy):
   TYPE_IDENTIFIER = "enemy_book"
   def filth(self): return 3
 
+class EnemyHawk(Enemy):
+  TYPE_IDENTIFIER = "enemy_hawk"
+  def filth(self): return 3
+
 known_types.append(EnemyLightPrism)
 known_types.append(EnemyHeavyPrism)
 known_types.append(EnemySlimeBeast)
@@ -284,3 +337,41 @@ known_types.append(EnemyKnight)
 known_types.append(EnemyGargoyleBig)
 known_types.append(EnemyGargoyleSmall)
 known_types.append(EnemyBook)
+known_types.append(EnemyHawk)
+
+class Apple(Entity):
+  TYPE_IDENTIFIER = "hittable_apple"
+
+class Dustman(Entity):
+  TYPE_IDENTIFIER = "dust_man"
+
+class Dustgirl(Entity):
+  TYPE_IDENTIFIER = "dust_girl"
+
+class Dustkid(Entity):
+  TYPE_IDENTIFIER = "dust_kid"
+
+class Dustworth(Entity):
+  TYPE_IDENTIFIER = "dust_worth"
+
+class Dustwraith(Entity):
+  TYPE_IDENTIFIER = "dust_wraith"
+
+class Leafsprite(Entity):
+  TYPE_IDENTIFIER = "leaf_sprite"
+
+class Trashking(Entity):
+  TYPE_IDENTIFIER = "trash_king"
+
+class Slimeboss(Entity):
+  TYPE_IDENTIFIER = "slime_boss"
+
+known_types.append(Apple)
+known_types.append(Dustman)
+known_types.append(Dustgirl)
+known_types.append(Dustkid)
+known_types.append(Dustworth)
+known_types.append(Dustwraith)
+known_types.append(Leafsprite)
+known_types.append(Trashking)
+known_types.append(Slimeboss)

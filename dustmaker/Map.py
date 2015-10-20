@@ -1,6 +1,8 @@
 from .MapException import MapException
 from .Var import Var, VarType
 
+import copy
+
 class Map:
   """ Represents a Dustforce level.
 
@@ -33,10 +35,10 @@ class Map:
     self._min_id = 100
     self.tiles = {}
     self.props = {}
+    self.vars = {}
 
     self.parent = parent
     if not parent:
-      self.vars = {}
       self.sshot = b""
       self.entities = {}
       self.backdrop = Map(self)
@@ -244,9 +246,51 @@ class Map:
     """
     if _do_remap_ids:
       self.remap_ids(map._min_id)
-    self.tiles.update(map.tiles)
-    self.props.update(map.props)
+    self.tiles.update(copy.deepcopy(map.tiles))
+    self.props.update(copy.deepcopy(map.props))
 
     if hasattr(self, "backdrop") and hasattr(map, "backdrop"):
-      self.entities.update(map.entities)
+      self.entities.update(copy.deepcopy(map.entities))
       self.backdrop.merge_map(map.backdrop, False)
+
+  def flip_horizontal(self):
+    self.tiles = {(layer, -x - 1, y): tile for ((layer, x, y), tile) in
+                  self.tiles.items()}
+    self.props = {id: (layer, -x, y, prop) for (id, (layer, x, y, prop)) in
+                  self.props.items()}
+    for tile in self.tiles.values():
+      tile.flip_horizontal()
+    for (layer, x, y, prop) in self.props.values():
+      prop.flip_horizontal()
+    pos = self.start_position()
+    self.start_position((-pos[0], pos[1]))
+
+    if hasattr(self, "entities"):
+      self.entities = {id: (-x, y, entity) for (id, (x, y, entity)) in
+                      self.entities.items()}
+      for (x, y, entity) in self.entities.values():
+        entity.flip_horizontal()
+
+    if hasattr(self, "backdrop"):
+      self.backdrop.flip_horizontal()
+
+  def flip_vertical(self):
+    self.tiles = {(layer, x, -y - 1): tile for ((layer, x, y), tile) in
+                  self.tiles.items()}
+    self.props = {id: (layer, x, -y, prop) for (id, (layer, x, y, prop)) in
+                  self.props.items()}
+    for tile in self.tiles.values():
+      tile.flip_vertical()
+    for (layer, x, y, prop) in self.props.values():
+      prop.flip_vertical()
+    pos = self.start_position()
+    self.start_position((pos[0], -pos[1]))
+
+    if hasattr(self, "entities"):
+      self.entities = {id: (x, -y, entity) for (id, (x, y, entity)) in
+                      self.entities.items()}
+      for (x, y, entity) in self.entities.values():
+        entity.flip_vertical()
+
+    if hasattr(self, "backdrop"):
+      self.backdrop.flip_vertical()
