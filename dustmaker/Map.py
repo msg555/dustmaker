@@ -253,44 +253,59 @@ class Map:
       self.entities.update(copy.deepcopy(map.entities))
       self.backdrop.merge_map(map.backdrop, False)
 
-  def flip_horizontal(self):
-    self.tiles = {(layer, -x - 1, y): tile for ((layer, x, y), tile) in
-                  self.tiles.items()}
-    self.props = {id: (layer, -x, y, prop) for (id, (layer, x, y, prop)) in
-                  self.props.items()}
+  
+  def transform(self, mat):
+    """ Transforms the map with the given affine transformation matrix.  Note
+        that this will probably not produce desirable results if the
+        transformation matrix is not some mixture of a translation, flip,
+        and 90 degree rotations.
+
+        In most cases you should not use this method directly and instead use
+        Map.flip_horizontal(), Map.flip_vertical(), or Map.rotate().
+
+        mat - The affine transformation matrix. [x', y', 1]' = mat * [x, y, 1]'
+    """
+    self.tiles = {(layer, mat[0][2] + x * mat[0][0] + y * mat[0][1] +
+                          min(0, mat[0][0]) + min(0, mat[0][1]),
+                          mat[1][2] + x * mat[1][0] + y * mat[1][1] +
+                          min(0, mat[1][0]) + min(0, mat[1][1])
+                      ): tile for ((layer, x, y), tile) in self.tiles.items()}
+    self.props = {id: (layer, mat[0][2] + x * mat[0][0] + y * mat[0][1],
+                              mat[1][2] + x * mat[1][0] + y * mat[1][1], prop)
+                   for (id, (layer, x, y, prop)) in self.props.items()}
     for tile in self.tiles.values():
-      tile.flip_horizontal()
+      tile.transform(mat)
     for (layer, x, y, prop) in self.props.values():
-      prop.flip_horizontal()
+      prop.transform(mat)
     pos = self.start_position()
-    self.start_position((-pos[0], pos[1]))
+    self.start_position((mat[0][2] + pos[0] * mat[0][0] + pos[1] * mat[0][1],
+                         mat[1][2] + pos[0] * mat[1][0] + pos[1] * mat[1][1]))
 
     if hasattr(self, "entities"):
-      self.entities = {id: (-x, y, entity) for (id, (x, y, entity)) in
-                      self.entities.items()}
+      self.entities = {id: (mat[0][2] + x * mat[0][0] + y * mat[0][1],
+                            mat[1][2] + x * mat[1][0] + y * mat[1][1], entity)
+                     for (id, (x, y, entity)) in self.entities.items()}
       for (x, y, entity) in self.entities.values():
-        entity.flip_horizontal()
+        entity.transform(mat)
 
     if hasattr(self, "backdrop"):
-      self.backdrop.flip_horizontal()
+      self.backdrop.transform(mat)
+
+  def flip_horizontal(self):
+    """ Flips the map horizontally. """
+    self.transform([[-1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
   def flip_vertical(self):
-    self.tiles = {(layer, x, -y - 1): tile for ((layer, x, y), tile) in
-                  self.tiles.items()}
-    self.props = {id: (layer, x, -y, prop) for (id, (layer, x, y, prop)) in
-                  self.props.items()}
-    for tile in self.tiles.values():
-      tile.flip_vertical()
-    for (layer, x, y, prop) in self.props.values():
-      prop.flip_vertical()
-    pos = self.start_position()
-    self.start_position((pos[0], -pos[1]))
+    """ Flips the map vertically. """
+    self.transform([[1, 0, 0], [0, -1, 0], [0, 0, 1]])
 
-    if hasattr(self, "entities"):
-      self.entities = {id: (x, -y, entity) for (id, (x, y, entity)) in
-                      self.entities.items()}
-      for (x, y, entity) in self.entities.values():
-        entity.flip_vertical()
+  def rotate(self, times = 1):
+    """ Rotates the map 90 degrees `times` times.
 
-    if hasattr(self, "backdrop"):
-      self.backdrop.flip_vertical()
+    times - The number of 90 degree rotations to perform.  This can be negative.
+    """
+    cs = [1, 0, -1, 0]
+    sn = [0, 1, 0, -1]
+    times %= 4
+    self.transform([[cs[times], -sn[times], 0], [sn[times], cs[times], 0],
+                    [0, 0, 1]])

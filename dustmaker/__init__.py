@@ -1,5 +1,5 @@
 from .Map import Map
-from .Entity import Entity, AIController, CameraNode, LevelEnd, Enemy
+from .Entity import Entity, AIController, CameraNode, LevelEnd, Enemy, DeathZone
 from .Prop import Prop
 from .Var import Var, VarType
 from .MapException import MapException, MapParseException

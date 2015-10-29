@@ -1,5 +1,7 @@
 from .Var import Var, VarType
 
+import math
+
 known_types = []
 
 class Entity:
@@ -34,13 +36,13 @@ class Entity:
   def remap_ids(self, id_map):
     pass
 
-  def flip_horizontal(self):
-    self.unk3 = 1 - self.unk3
-    self.rotation = -self.rotation & 0xFFFF
+  def transform(self, mat):
+    angle = math.atan2(mat[1][1], mat[1][0]) - math.pi / 2
+    self.rotation = self.rotation - int(0x10000 * angle / math.pi / 2) & 0xFFFF
 
-  def flip_vertical(self):
-    self.rotation = self.rotation + (1 << 15) & 0xFFFF
-    self.flip_horizontal()
+    if mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0] < 0:
+      self.unk3 = 1 - self.unk3
+      self.rotation = -self.rotation & 0xFFFF
 
 class DeathZone(Entity):
   TYPE_IDENTIFIER = "kill_box"
@@ -64,6 +66,12 @@ class DeathZone(Entity):
     if not val is None:
       self.vars['height'].value = round(val * 48)
     return result
+
+  def transform(self, mat):
+    w = self.width()
+    h = self.height()
+    self.width(abs(w * mat[0][0] + h * mat[0][1]))
+    self.height(abs(w * mat[1][0] + h * mat[1][1]))
 
 known_types.append(DeathZone)
 
@@ -116,17 +124,13 @@ class AIController(Entity):
     else:
       self.puppet(-1)
 
-  def flip_horizontal(self):
+  def transform(self, mat):
     for i in range(self.node_count()):
       pos = self.node_position(i)
-      self.node_position(i, (-pos[0], pos[1]))
-    super(AIController, self).flip_horizontal()
-
-  def flip_vertical(self):
-    for i in range(self.node_count()):
-      pos = self.node_position(i)
-      self.node_position(i, (pos[0], -pos[1]))
-    super(AIController, self).flip_horizontal()
+      self.node_position(i,
+          (mat[0][2] + pos[0] * mat[0][0] + pos[1] * mat[0][1],
+           mat[1][2] + pos[0] * mat[1][0] + pos[1] * mat[1][1]))
+    super(AIController, self).transform(mat)
 
 known_types.append(AIController)
 

@@ -1,5 +1,7 @@
 from enum import IntEnum
 
+import math
+
 class TileSpriteSet(IntEnum):
   """ Used to describe what set of tiles a tile's sprite comes from. """
   none_0 = 0
@@ -103,6 +105,32 @@ tile_maximal_bits = [
   [ 15, 15, 15, 0, ], # TileShape.HALF_B:
   [ 15, 15, 0, 15, ], # TileShape.HALF_C:
   [ 15, 15, 0, 15, ], # TileShape.HALF_D:
+]
+
+# Full - Clockwise from top
+# Small/Big/Half - Clockwise from hyp. (ccw from mirrored)
+shape_ordered_sides = [
+  [0, 2, 1, 3],
+  [0, 1, 2],
+  [0, 1],
+  [3, 2, 0],
+  [3, 2],
+  [1, 0, 3],
+  [1, 0],
+  [2, 3, 1],
+  [2, 3],
+  [0, 1, 3],
+  [0, 1],
+  [2, 3, 0],
+  [2, 3],
+  [1, 0, 2],
+  [1, 0],
+  [3, 2, 1],
+  [3, 2],
+  [0, 1, 2],
+  [1, 2, 0],
+  [1, 0, 3],
+  [0, 3, 1],
 ]
 
 class Tile:
@@ -263,30 +291,46 @@ class Tile:
     tl = self.sprite_tile()
     return dustblocks.get(st, -1) == tl
 
-  def flip_horizontal(self):
-    if self.shape == TileShape.FULL:
-      pass
-    elif self.shape <= TileShape.SMALL_8:
-      self.shape = 1 + ((self.shape - TileShape.BIG_1) ^ 8) % 16
-    else:
-      self.shape = 17 + ((self.shape - TileShape.HALF_A) ^ 3)
-    self.edge_bits(TileSide.LEFT, self.edge_bits(TileSide.RIGHT,
-                   self.edge_bits(TileSide.LEFT)))
-    self.edge_filth_sprite(TileSide.LEFT, *self.edge_filth_sprite(TileSide.RIGHT,
-                   *self.edge_filth_sprite(TileSide.LEFT)))
-    self.edge_filth_cap(TileSide.LEFT, self.edge_filth_cap(TileSide.RIGHT,
-                   self.edge_filth_cap(TileSide.LEFT)))
+  def transform(self, mat):
+    global shape_ordered_sides
 
-  def flip_vertical(self):
+    oshape = self.shape
+    flipped = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0] < 0
+    if flipped:
+      if self.shape == TileShape.FULL:
+        pass
+      elif self.shape <= TileShape.SMALL_8:
+        self.shape = 1 + ((self.shape - TileShape.BIG_1) ^ 8) % 16
+      else:
+        self.shape = 17 + ((self.shape - TileShape.HALF_A) ^ 3)
+    angle = int(round(math.atan2(mat[1][1], mat[1][0]) / math.pi * 2))
+    angle = (-angle + 1) & 0x3
+
     if self.shape == TileShape.FULL:
       pass
+    elif self.shape <= TileShape.SMALL_4:
+      self.shape = 1 + ((self.shape - TileShape.BIG_1) + angle * 2) % 8
     elif self.shape <= TileShape.SMALL_8:
-      self.shape = 1 + ((self.shape - TileShape.BIG_1) ^ 12)
+      self.shape = 9 + ((self.shape - TileShape.BIG_5) - angle * 2) % 8
     else:
-      self.shape = 17 + ((self.shape - TileShape.HALF_A) ^ 1)
-    self.edge_bits(TileSide.TOP, self.edge_bits(TileSide.BOTTOM,
-                   self.edge_bits(TileSide.TOP)))
-    self.edge_filth_sprite(TileSide.TOP, *self.edge_filth_sprite(TileSide.BOTTOM,
-                   *self.edge_filth_sprite(TileSide.TOP)))
-    self.edge_filth_cap(TileSide.TOP, self.edge_filth_cap(TileSide.BOTTOM,
-                   self.edge_filth_cap(TileSide.TOP)))
+      self.shape = 17 + ((self.shape - TileShape.HALF_A) + angle) % 4
+
+    nbits = []
+    nfilth_sprite = []
+    nfilth_cap = []
+    for side in shape_ordered_sides[oshape]:
+      nbits.append(self.edge_bits(side))
+      nfilth_sprite.append(self.edge_filth_sprite(side))
+      nfilth_cap.append(self.edge_filth_cap(side))
+    for side in TileSide:
+      self.edge_bits(side, 0)
+      self.edge_filth_sprite(side, TileSpriteSet.none_0, False)
+      self.edge_filth_cap(side, 0)
+    for (i, side) in enumerate(shape_ordered_sides[self.shape]):
+      if self.shape == TileShape.FULL:
+        i = i + angle & 3
+        if flipped:
+          i = -i & 3
+      self.edge_bits(side, nbits[i])
+      self.edge_filth_sprite(side, *nfilth_sprite[i])
+      self.edge_filth_cap(side, nfilth_cap[i])
