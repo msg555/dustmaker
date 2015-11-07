@@ -156,14 +156,14 @@ def _read_segment(reader, map, xoffset, yoffset):
       xpos = _read_float(reader, 32, 8)
       ypos = _read_float(reader, 32, 8)
       rotation = reader.read(16)
-      unk1 = reader.read(8)
+      layer = reader.read(8)
       unk2 = reader.read(1)
       unk3 = reader.read(1)
       unk4 = reader.read(1)
       vars = _read_var_map(reader)
 
       map.add_entity(xpos / 48, ypos / 48, Entity._from_raw(
-                     type, vars, rotation, unk1, unk2, unk3, unk4), id)
+                     type, vars, rotation, layer, unk2, unk3, unk4), id)
 
 def _read_region(reader, map):
   region_len = reader.read(32)

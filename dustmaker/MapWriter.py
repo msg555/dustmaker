@@ -152,7 +152,7 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
       _write_float(writer, 32, 8, x * 48)
       _write_float(writer, 32, 8, y * 48)
       writer.write(16, entity.rotation)
-      writer.write(8, entity.unk1)
+      writer.write(8, entity.layer)
       writer.write(1, entity.unk2)
       writer.write(1, entity.unk3)
       writer.write(1, entity.unk4)

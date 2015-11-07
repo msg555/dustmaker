@@ -196,20 +196,7 @@ class Map:
         y - The number of tiles to move horizontally.  If a float tiles will be
             moved by the nearest integer.
     """
-    ix = int(x)
-    iy = int(y)
-    self.tiles = {(c[0], c[1] + ix, c[2] + iy): tile
-                  for (c, tile) in self.tiles.items()}
-    self.props = {id: (p[0], p[1] + x, p[2] + y, p[3])
-                     for (id, p) in self.props.items()}
-    if hasattr(self, "backdrop"):
-      pos = self.start_position()
-      self.start_position((pos[0] + x, pos[1] + y))
-      self.entities = {id: (p[0] + x, p[1] + y, p[2])
-                       for (id, p) in self.entities.items()}
-      for p in self.entities.values():
-        p[2].translate(x, y)
-      self.backdrop.translate(x / 16, y / 16)
+    self.transform([[1, 0, x], [0, 1, y], [0, 0, 1]])
 
   def remap_ids(self, min_id = None):
     """ Remap prop and entity ids starting at min_id.
