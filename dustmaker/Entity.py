@@ -1,6 +1,6 @@
+import math
 from .Var import Var, VarType
 
-import math
 
 known_types = []
 
@@ -16,11 +16,11 @@ class Entity:
         entity.type = type
         return entity
 
-    def __init__(self, vars={}, rotation=0,
+    def __init__(self, vars=None, rotation=0,
                  layer=18, unk2=1, unk3=1, unk4=1):
         if hasattr(self, "TYPE_IDENTIFIER"):
             self.type = self.TYPE_IDENTIFIER
-        self.vars = vars
+        self.vars = {} if vars is None else vars
         self.rotation = rotation
         self.layer = layer
         self.unk2 = unk2
@@ -49,7 +49,7 @@ class TriggerArea(Entity):
 
     def __init__(self, vars, rotation=0,
                  layer=0, unk2=0, unk3=0, unk4=0):
-        if not 'trigger_area' in vars:
+        if 'trigger_area' not in vars:
             vars['trigger_area'] = Var(VarType.ARRAY, (VarType.VEC2, []))
         super(TriggerArea, self).__init__(
             vars, rotation, layer, unk2, unk3, unk4)
@@ -59,7 +59,7 @@ class TriggerArea(Entity):
 
     def area_position(self, ind, val=None):
         result = self.vars['trigger_area'].value[1][ind].value
-        if not val is None:
+        if val is not None:
             self.vars['trigger_area'].value[1][ind] = Var(VarType.VEC2, val)
         return result
 
@@ -97,7 +97,7 @@ class Trigger(Entity):
 
     def __init__(self, vars, rotation=0,
                  layer=0, unk2=0, unk3=0, unk4=0):
-        if not 'width' in vars:
+        if 'width' not in vars:
             vars['width'] = Var(VarType.UINT, 500)
         super(Trigger, self).__init__(vars, rotation, layer, unk2, unk3, unk4)
 
@@ -113,30 +113,30 @@ class DeathZone(Entity):
 
     def __init__(self, vars, rotation=0,
                  layer=0, unk2=0, unk3=0, unk4=0):
-        if not 'width' in vars:
+        if 'width' not in vars:
             vars['width'] = Var(VarType.INT, 1)
-        if not 'height' in vars:
+        if 'height' not in vars:
             vars['height'] = Var(VarType.INT, 1)
         super(DeathZone, self).__init__(
             vars, rotation, layer, unk2, unk3, unk4)
 
     def width(self, val=None):
         result = self.vars['width'].value / 48.0
-        if not val is None:
+        if val is not None:
             self.vars['width'].value = round(val * 48)
         return result
 
     def height(self, val=None):
         result = self.vars['height'].value / 48.0
-        if not val is None:
+        if val is not None:
             self.vars['height'].value = round(val * 48)
         return result
 
     def transform(self, mat):
-        w = self.width()
-        h = self.height()
-        self.width(abs(w * mat[0][0] + h * mat[0][1]))
-        self.height(abs(w * mat[1][0] + h * mat[1][1]))
+        width = self.width()
+        height = self.height()
+        self.width(abs(width * mat[0][0] + height * mat[0][1]))
+        self.height(abs(width * mat[1][0] + height * mat[1][1]))
         super(DeathZone, self).transform(mat)
 
 known_types.append(DeathZone)
@@ -147,16 +147,16 @@ class AIController(Entity):
 
     def __init__(self, vars, rotation=0,
                  layer=0, unk2=0, unk3=0, unk4=0):
-        if not 'puppet_id' in vars:
+        if 'puppet_id' not in vars:
             vars['puppet_id'] = Var(VarType.INT, 0)
-        if not 'nodes' in vars:
+        if 'nodes' not in vars:
             vars['nodes'] = Var(VarType.ARRAY, (VarType.VEC2, []))
         super(AIController, self).__init__(
             vars, rotation, layer, unk2, unk3, unk4)
 
     def puppet(self, val=None):
         result = self.vars['puppet_id'].value
-        if not val is None:
+        if val is not None:
             self.vars['puppet_id'].value = val
         return result
 
@@ -165,7 +165,7 @@ class AIController(Entity):
 
     def node_position(self, ind, val=None):
         result = self.vars['nodes'].value[1][ind].value
-        if not val is None:
+        if val is not None:
             self.vars['nodes'].value[1][ind] = Var(VarType.VEC2,
                                                    (val[0] * 48, val[1] * 48))
         return (result[0] / 48, result[1] / 48)
@@ -189,9 +189,11 @@ class AIController(Entity):
     def transform(self, mat):
         for i in range(self.node_count()):
             pos = self.node_position(i)
-            self.node_position(i,
-                               (mat[0][2] + pos[0] * mat[0][0] + pos[1] * mat[0][1],
-                                mat[1][2] + pos[0] * mat[1][0] + pos[1] * mat[1][1]))
+            self.node_position(
+                i,
+                (mat[0][2] + pos[0] * mat[0][0] + pos[1] * mat[0][1],
+                 mat[1][2] + pos[0] * mat[1][0] + pos[1] * mat[1][1])
+            )
         super(AIController, self).transform(mat)
 
 known_types.append(AIController)
@@ -202,7 +204,7 @@ class CameraNode(Entity):
 
     def __init__(self, vars, rotation=0,
                  layer=0, unk2=0, unk3=0, unk4=0):
-        if not 'c_node_ids' in vars:
+        if 'c_node_ids' not in vars:
             vars['c_node_ids'] = Var(VarType.ARRAY, (VarType.INT, []))
         super(CameraNode, self).__init__(
             vars, rotation, layer, unk2, unk3, unk4)
@@ -212,7 +214,7 @@ class CameraNode(Entity):
 
     def connection(self, ind, val=None):
         result = self.vars['c_node_ids'].value[1][ind].value
-        if not val is None:
+        if val is not None:
             self.vars['c_node_ids'].value[1][ind] = Var(VarType.INT, val)
         return result
 
@@ -237,7 +239,7 @@ class LevelEnd(Entity):
 
     def __init__(self, vars, rotation=0,
                  layer=0, unk2=0, unk3=0, unk4=0):
-        if not 'ent_list' in vars:
+        if 'ent_list' not in vars:
             vars['ent_list'] = Var(VarType.ARRAY, (VarType.INT, []))
         super(LevelEnd, self).__init__(vars, rotation, layer, unk2, unk3, unk4)
 
@@ -246,7 +248,7 @@ class LevelEnd(Entity):
 
     def entity(self, ind, val=None):
         result = self.vars['ent_list'].value[1][ind].value
-        if not val is None:
+        if val is not None:
             self.vars['ent_list'].value[1][ind] = Var(VarType.INT, val)
         return result
 
@@ -268,13 +270,15 @@ known_types.append(LevelEnd)
 
 class Enemy(Entity):
 
-    def __init__(self, vars={}, rotation=0, layer=18, unk2=1,
+    def __init__(self, vars=None, rotation=0, layer=18, unk2=1,
                  unk3=1, unk4=1):
         super(Enemy, self).__init__(vars, rotation, layer, unk2, unk3, unk4)
 
-    def filth(self): return 1
+    def filth(self):
+        return 1
 
-    def combo(self): return self.filth()
+    def combo(self):
+        return self.filth()
 
 
 class EnemyLightPrism(Enemy):
@@ -284,73 +288,85 @@ class EnemyLightPrism(Enemy):
 class EnemyHeavyPrism(Enemy):
     TYPE_IDENTIFIER = "enemy_tutorial_hexagon"
 
-    def combo(self): return 3
+    def combo(self):
+        return 3
 
 
 class EnemySlimeBeast(Enemy):
     TYPE_IDENTIFIER = "enemy_slime_beast"
 
-    def filth(self): return 9
+    def filth(self):
+        return 9
 
 
 class EnemySlimeBarrel(Enemy):
     TYPE_IDENTIFIER = "enemy_slime_barrel"
 
-    def filth(self): return 3
+    def filth(self):
+        return 3
 
 
 class EnemySpringBall(Enemy):
     TYPE_IDENTIFIER = "enemy_spring_ball"
 
-    def filth(self): return 5
+    def filth(self):
+        return 5
 
 
 class EnemySlimeBall(Enemy):
     TYPE_IDENTIFIER = "enemy_slime_ball"
 
-    def filth(self): return 3
+    def filth(self):
+        return 3
 
 
 class EnemyTrashTire(Enemy):
     TYPE_IDENTIFIER = "enemy_trash_tire"
 
-    def filth(self): return 3
+    def filth(self):
+        return 3
 
 
 class EnemyTrashBeast(Enemy):
     TYPE_IDENTIFIER = "enemy_trash_beast"
 
-    def filth(self): return 9
+    def filth(self):
+        return 9
 
 
 class EnemyTrashCan(Enemy):
     TYPE_IDENTIFIER = "enemy_trash_can"
 
-    def filth(self): return 9
+    def filth(self):
+        return 9
 
 
 class EnemyTrashBall(Enemy):
     TYPE_IDENTIFIER = "enemy_trash_ball"
 
-    def filth(self): return 3
+    def filth(self):
+        return 3
 
 
 class EnemyBear(Enemy):
     TYPE_IDENTIFIER = "enemy_bear"
 
-    def filth(self): return 9
+    def filth(self):
+        return 9
 
 
 class EnemyTotemLarge(Enemy):
     TYPE_IDENTIFIER = "enemy_stoneboss"
 
-    def filth(self): return 12
+    def filth(self):
+        return 12
 
 
 class EnemyTotemSmall(Enemy):
     TYPE_IDENTIFIER = "enemy_stonebro"
 
-    def filth(self): return 3
+    def filth(self):
+        return 3
 
 
 class EnemyPorcupine(Enemy):
@@ -360,19 +376,22 @@ class EnemyPorcupine(Enemy):
 class EnemyWolf(Enemy):
     TYPE_IDENTIFIER = "enemy_wolf"
 
-    def filth(self): return 5
+    def filth(self):
+        return 5
 
 
 class EnemyTurkey(Enemy):
     TYPE_IDENTIFIER = "enemy_critter"
 
-    def filth(self): return 3
+    def filth(self):
+        return 3
 
 
 class EnemyFlag(Enemy):
     TYPE_IDENTIFIER = "enemy_flag"
 
-    def filth(self): return 5
+    def filth(self):
+        return 5
 
 
 class EnemyScroll(Enemy):
@@ -386,13 +405,15 @@ class EnemyTreasure(Enemy):
 class EnemyChestTreasure(Enemy):
     TYPE_IDENTIFIER = "enemy_chest_treasure"
 
-    def filth(self): return 9
+    def filth(self):
+        return 9
 
 
 class EnemyChestScrolls(Enemy):
     TYPE_IDENTIFIER = "enemy_chest_scrolls"
 
-    def filth(self): return 9
+    def filth(self):
+        return 9
 
 
 class EnemyButler(Enemy):
@@ -406,31 +427,37 @@ class EnemyMaid(Enemy):
 class EnemyKnight(Enemy):
     TYPE_IDENTIFIER = "enemy_knight"
 
-    def filth(self): return 9
+    def filth(self):
+        return 9
 
 
 class EnemyGargoyleBig(Enemy):
     TYPE_IDENTIFIER = "enemy_gargoyle_big"
 
-    def filth(self): return 5
+    def filth(self):
+        return 5
 
 
 class EnemyGargoyleSmall(Enemy):
     TYPE_IDENTIFIER = "enemy_gargoyle_small"
 
-    def filth(self): return 3
+    def filth(self):
+        return 3
 
 
 class EnemyBook(Enemy):
     TYPE_IDENTIFIER = "enemy_book"
 
-    def filth(self): return 3
+    def filth(self):
+        return 3
 
 
 class EnemyHawk(Enemy):
     TYPE_IDENTIFIER = "enemy_hawk"
 
-    def filth(self): return 3
+    def filth(self):
+        return 3
+
 
 known_types.append(EnemyLightPrism)
 known_types.append(EnemyHeavyPrism)
@@ -496,6 +523,7 @@ class Trashking(Entity):
 
 class Slimeboss(Entity):
     TYPE_IDENTIFIER = "slime_boss"
+
 
 known_types.append(Apple)
 known_types.append(Dustman)

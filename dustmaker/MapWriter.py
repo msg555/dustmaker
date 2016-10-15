@@ -1,13 +1,12 @@
-from .Map import Map
-from .Tile import Tile, TileSide, TileSpriteSet
-from .Prop import Prop
-from .Entity import Entity, Enemy
-from .Var import Var, VarType
-from .BitWriter import BitWriter
-from .MapException import MapParseException
-
 import zlib
 from math import floor
+
+
+from .Tile import TileSide, TileSpriteSet
+from .Entity import Enemy
+from .Var import VarType
+from .BitWriter import BitWriter
+from .MapException import MapParseException
 
 
 def _write_float(writer, ibits, fbits, val):
@@ -321,7 +320,7 @@ def write_map(map):
 
     writer_back = BitWriter()
     region_map = _compute_region_map(map)
-    for coord in sorted(region_map.keys(), key=_norm_for_sort):
+    for coord in sorted(region_map, key=_norm_for_sort):
         writer_back.align(8)
         writer_front.write(32, writer_back.byte_count())
         reg_data = _write_region(coord[0], coord[1], region_map[coord])

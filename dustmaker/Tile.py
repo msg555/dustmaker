@@ -33,12 +33,14 @@ class TileShape(IntEnum):
 
         Big and small tiles form the inbetween angles.  The big tile variant
         covers 75% of the tile while the small tile variant covers 25% of the
-        tile.  Each of these comes in 8 varieties 1-8 depicted in the wheel below.
+        tile.  Each of these comes in 8 varieties 1-8 depicted in the wheel
+        below.
 
-        To determine the angle of a half, big, or small tile from its shape find
-        its identifier in the wheel.  Imagine you were located at X and the +
-        characters formed a circle around you; the angle of the tile would be
-        approximately the angle of the circle surface where its label is.::
+        To determine the angle of a half, big, or small tile from its shape
+        find its identifier in the wheel.  Imagine you were located at X and
+        the + characters formed a circle around you; the angle of the tile
+        would be approximately the angle of the circle surface where its label
+        is.::
 
                   +++++
                +7+     +3+
@@ -191,8 +193,8 @@ class Tile:
 
     def edge_bits(self, side, val=None):
         """ Returns the 4 bit number associated with `side` surface of the tile.
-            I'm unsure what each bit means currently.  Set all to 0 to freely move
-            through that side of the tile and to 0xF to cause collisions.
+            I'm unsure what each bit means currently.  Set all to 0 to freely
+            move through that side of the tile and to 0xF to cause collisions.
 
             side -- The side to get/set edge bits.
             val -- If present a 4 bit integer to set as the new edge bits.
@@ -202,7 +204,7 @@ class Tile:
         for (i, bit) in enumerate(bits):
             if self.tile_data[bit >> 3] & (1 << (bit & 7)):
                 result |= 1 << i
-            if not val is None:
+            if val is not None:
                 self.tile_data[bit >> 3] &= ~(1 << (bit & 7))
                 if val & 1 << i:
                     self.tile_data[bit >> 3] |= 1 << (bit & 7)
@@ -216,7 +218,7 @@ class Tile:
         """
         result = (self.tile_data[2 + side * 2] +
                   (self.tile_data[2 + side * 2 + 1] << 8))
-        if not val is None:
+        if val is not None:
             self.tile_data[2 + side * 2] = val & 0xFF
             self.tile_data[2 + side * 2 + 1] = val >> 8
         return result
@@ -227,7 +229,7 @@ class Tile:
             val -- If present a TileSpriteSet to set as the new sprite set.
         """
         result = TileSpriteSet(self.tile_data[10] & 0xF)
-        if not val is None:
+        if val is not None:
             self.tile_data[10] = (self.tile_data[10] & 0xF0) | val
         return result
 
@@ -237,7 +239,7 @@ class Tile:
             val -- If present the new tile index for this tile.
         """
         result = self.tile_data[11]
-        if not val is None:
+        if val is not None:
             self.tile_data[11] = val
         return result
 
@@ -247,7 +249,7 @@ class Tile:
             val -- If present the new palette index for this tile.
         """
         result = (self.tile_data[10] & 0xF0) >> 4
-        if not val is None:
+        if val is not None:
             self.tile_data[10] = (self.tile_data[10] & 0x0F) | (val << 4)
         return result
 
@@ -259,7 +261,8 @@ class Tile:
             val -- If present the new palette index for this tile.
         """
         return "area/%s/tiles/tile%d_%d_0001.png" % (
-            self.sprite_set().name, self.sprite_tile(), self.sprite_palette() + 1)
+            self.sprite_set().name, self.sprite_tile(),
+            self.sprite_palette() + 1)
 
     def has_filth(self):
         return self.dust_data[0] != 0 or self.dust_data[1] != 0
@@ -268,7 +271,7 @@ class Tile:
         ind = side // 2
         shft = 4 * (side % 2)
         result = (self.dust_data[ind] >> shft) & 0xF
-        if not sprite_set is None and not spikes is None:
+        if sprite_set is not None and spikes is not None:
             val = sprite_set | (0x8 if spikes else 0x0)
             self.dust_data[ind] &= 0xF0 >> shft
             self.dust_data[ind] |= val << shft
@@ -277,7 +280,7 @@ class Tile:
     def edge_filth_cap(self, side, val=None):
         shft = 2 * side
         result = (self.dust_data[10] >> shft) & 0x3
-        if not val is None:
+        if val is not None:
             self.dust_data[10] &= ~(0x3 << shft)
             self.dust_data[10] |= val << shft
         return result

@@ -1,7 +1,6 @@
+import copy
 from .MapException import MapException
 from .Var import Var, VarType
-
-import copy
 
 
 class Map:
@@ -11,11 +10,11 @@ class Map:
 
         map.tiles - A dict mapping (layer, x, y) to Tile objects.
         map.props - A dict mapping prop ids to Prop objects.
-        map.parent - For backdrops this is the containing map.  Otherwise this is
-                     set to None.
+        map.parent - For backdrops this is the containing map.  Otherwise this
+                     is set to None.
 
-        If the map is not a backdrop (i.e. map.parent == None) then the following
-        attributes will also be available:
+        If the map is not a backdrop (i.e. map.parent == None) then the
+        following attributes will also be available:
 
         map.entities - A dict mapping entity ids to Entity objects.
         map.backdrop - The backdrop Map object.  Backdrop maps can only contain
@@ -30,8 +29,8 @@ class Map:
     def __init__(self, parent=None):
         """ Constructs a blank level object.
 
-            parent - If this Map represents a backdrop this is the containing map.
-                     Typical usage should not need to use this parameter.
+            parent - If this Map represents a backdrop this is the containing
+                     map.  Typical usage should not need to use this parameter.
         """
         self._min_id = 100
         self.tiles = {}
@@ -60,7 +59,7 @@ class Map:
         result = default
         if key in self.vars:
             result = self.vars[key].value
-        if not val is None:
+        if val is not None:
             self.vars[key] = Var(type, val)
         return result
 
@@ -82,7 +81,7 @@ class Map:
         for (i, key) in enumerate(keys):
             if key in self.vars:
                 result[i] = self.vars[key].value / 48.0
-            if not val is None:
+            if val is not None:
                 self.vars[key] = Var(VarType.UINT, int(round(val[i] * 48)))
         return (result[0], result[1])
 
@@ -192,10 +191,10 @@ class Map:
     def translate(self, x, y):
         """ Translate the entire map x tiles laterally and y tiles horizontally.
 
-            x - The number of tiles to move laterally.  If a float tiles will be
-                moved by the nearest integer.
-            y - The number of tiles to move horizontally.  If a float tiles will be
-                moved by the nearest integer.
+            x - The number of tiles to move laterally.  If a float tiles will
+                be moved by the nearest integer.
+            y - The number of tiles to move horizontally.  If a float tiles
+                will be moved by the nearest integer.
         """
         self.transform([[1, 0, x], [0, 1, y], [0, 0, 1]])
 
@@ -247,16 +246,19 @@ class Map:
             transformation matrix is not some mixture of a translation, flip,
             and 90 degree rotations.
 
-            In most cases you should not use this method directly and instead use
-            Map.flip_horizontal(), Map.flip_vertical(), or Map.rotate().
+            In most cases you should not use this method directly and instead
+            use Map.flip_horizontal(), Map.flip_vertical(), or Map.rotate().
 
-            mat - The affine transformation matrix. [x', y', 1]' = mat * [x, y, 1]'
+            mat - The affine transformation matrix.
+                  [x', y', 1]' = mat * [x, y, 1]'
         """
-        self.tiles = {(layer, mat[0][2] + x * mat[0][0] + y * mat[0][1] +
-                       min(0, mat[0][0]) + min(0, mat[0][1]),
-                       mat[1][2] + x * mat[1][0] + y * mat[1][1] +
-                       min(0, mat[1][0]) + min(0, mat[1][1])
-                       ): tile for ((layer, x, y), tile) in self.tiles.items()}
+        self.tiles = {
+            (layer, mat[0][2] + x * mat[0][0] + y * mat[0][1] +
+             min(0, mat[0][0]) + min(0, mat[0][1]),
+             mat[1][2] + x * mat[1][0] + y * mat[1][1] +
+             min(0, mat[1][0]) + min(0, mat[1][1])): tile
+            for ((layer, x, y), tile) in self.tiles.items()
+        }
         self.props = {id: (layer, mat[0][2] + x * mat[0][0] + y * mat[0][1],
                            mat[1][2] + x * mat[1][0] + y * mat[1][1], prop)
                       for (id, (layer, x, y, prop)) in self.props.items()}
@@ -265,13 +267,17 @@ class Map:
         for (layer, x, y, prop) in self.props.values():
             prop.transform(mat)
         pos = self.start_position()
-        self.start_position((mat[0][2] + pos[0] * mat[0][0] + pos[1] * mat[0][1],
-                             mat[1][2] + pos[0] * mat[1][0] + pos[1] * mat[1][1]))
+        self.start_position(
+            (mat[0][2] + pos[0] * mat[0][0] + pos[1] * mat[0][1],
+             mat[1][2] + pos[0] * mat[1][0] + pos[1] * mat[1][1])
+        )
 
         if hasattr(self, "entities"):
-            self.entities = {id: (mat[0][2] + x * mat[0][0] + y * mat[0][1],
-                                  mat[1][2] + x * mat[1][0] + y * mat[1][1], entity)
-                             for (id, (x, y, entity)) in self.entities.items()}
+            self.entities = {
+                id: (mat[0][2] + x * mat[0][0] + y * mat[0][1],
+                     mat[1][2] + x * mat[1][0] + y * mat[1][1], entity)
+                for (id, (x, y, entity)) in self.entities.items()
+            }
             for (x, y, entity) in self.entities.values():
                 entity.transform(mat)
 
@@ -289,7 +295,8 @@ class Map:
     def rotate(self, times=1):
         """ Rotates the map 90 degrees `times` times.
 
-        times - The number of 90 degree rotations to perform.  This can be negative.
+        times - The number of 90 degree rotations to perform.  This can be
+                negative.
         """
         cs = [1, 0, -1, 0]
         sn = [0, 1, 0, -1]

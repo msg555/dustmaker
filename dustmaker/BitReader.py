@@ -67,8 +67,8 @@ class BitReader:
             result = self.data[self.pos >> 3: (self.pos >> 3) + num]
             self.pos += num * 8
         else:
-            result = bytearray()
-            for i in range(num):
-                result.append(self.read(8))
-            result = bytes(result)
+            temp = bytearray()
+            for _ in range(num):
+                temp.append(self.read(8))
+            result = bytes(temp)
         return result

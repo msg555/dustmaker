@@ -61,5 +61,5 @@ class BitWriter:
             self.data += data
             self.pos += 8 * len(data)
         else:
-            for x in data:
-                self.write(8, x)
+            for byte in data:
+                self.write(8, byte)

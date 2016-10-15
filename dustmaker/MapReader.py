@@ -1,3 +1,4 @@
+import zlib
 from .Map import Map
 from .Tile import Tile, TileShape
 from .Prop import Prop
@@ -5,8 +6,6 @@ from .Entity import Entity
 from .Var import Var, VarType
 from .BitReader import BitReader
 from .MapException import MapParseException
-
-import zlib
 
 
 def _read_expect(reader, data):
@@ -107,6 +106,7 @@ def _read_segment(reader, map, xoffset, yoffset):
     if version > 5:
         tile_surface = reader.read(16)
         dustblock_filth = reader.read(16)
+        pass
 
     flags = reader.read(32)
     if flags & 1:
@@ -131,7 +131,7 @@ def _read_segment(reader, map, xoffset, yoffset):
             ypos = reader.read(5)
             data = reader.read_bytes(12)
             tile = map.get_tile(19, xoffset + xpos, yoffset + ypos)
-            if tile != None:
+            if tile is not None:
                 tile.dust_data = bytearray(data)
 
     if flags & 8:
@@ -153,9 +153,12 @@ def _read_segment(reader, map, xoffset, yoffset):
             prop_index = reader.read(12)
             palette = reader.read(8)
 
-            map.add_prop(layer, xpos / 48, ypos / 48, Prop(
-                         layer_sub, rotation, scale_x, scale_y,
-                         prop_set, prop_group, prop_index, palette), id)
+            map.add_prop(
+                layer, xpos / 48, ypos / 48,
+                Prop(layer_sub, rotation, scale_x, scale_y,
+                     prop_set, prop_group, prop_index, palette),
+                id
+            )
 
     if flags & 4:
         entities = reader.read(16)
@@ -174,8 +177,12 @@ def _read_segment(reader, map, xoffset, yoffset):
             unk4 = reader.read(1)
             vars = _read_var_map(reader)
 
-            map.add_entity(xpos / 48, ypos / 48, Entity._from_raw(
-                           type, vars, rotation, layer, unk2, unk3, unk4), id)
+            map.add_entity(
+                xpos / 48, ypos / 48,
+                Entity._from_raw(type, vars, rotation,
+                                 layer, unk2, unk3, unk4),
+                id
+            )
 
 
 def _read_region(reader, map):

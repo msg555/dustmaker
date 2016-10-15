@@ -1,9 +1,11 @@
+"""A library for reading and manipulating Dustforce level files"""
 from .Map import Map
-from .Entity import Entity, AIController, CameraNode, LevelEnd, Enemy, DeathZone
-from .Prop import Prop
-from .Var import Var, VarType
 from .MapException import MapException, MapParseException
-from .Tile import Tile, TileShape, TileSpriteSet, TileSide
+from .Prop import Prop
+from .Tile import Tile, TileSide, TileShape, TileSpriteSet
+from .Var import Var, VarType
+from .Entity import \
+    AIController, CameraNode, DeathZone, Enemy, Entity, LevelEnd
 
 from .MapReader import read_map
 from .MapWriter import write_map

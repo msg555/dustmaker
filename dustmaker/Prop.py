@@ -2,7 +2,6 @@ import math
 
 
 class Prop:
-
     def __init__(self, layer_sub, rotation, scale_x, scale_y,
                  prop_set, prop_group, prop_index, palette):
         self.layer_sub = layer_sub
