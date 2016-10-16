@@ -1,5 +1,6 @@
 class MapException(Exception):
-  pass
+    pass
+
 
 class MapParseException(MapException):
-  pass
+    pass
