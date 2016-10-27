@@ -289,8 +289,12 @@ class Map:
   def rotate(self, times = 1):
     """ Rotates the map 90 degrees `times` times.
 
-    times - The number of 90 degree rotations to perform.  This can be negative.
+    times - The integer number of 90 degree rotations to perform.  This can be
+    negative.
     """
+    if not isinstance(times, int):
+      raise TypeError("rotation multiplier must be an integer")
+    
     cs = [1, 0, -1, 0]
     sn = [0, 1, 0, -1]
     times %= 4
