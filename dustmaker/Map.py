@@ -91,6 +91,13 @@ class Map:
         val - If not None sets the virtual character flag for the map.
     """
     return self._var_access("vector_character", VarType.BOOL, val, False)
+  
+  def level_type(self, val = None):
+    """ Returns the type of the level (e.g., Normal, Nexus, etc.).
+        
+        val - If not None sets the level type. Use the LevelType enum.
+    """
+    return self._var_access("level_type", VarType.UINT, val, 0)
 
   def add_entity(self, x, y, entity, id = None):
     """ Adds a new entity to the map and returns its id.
