@@ -1,6 +1,7 @@
 from enum import IntEnum
 
 import math
+import copy
 
 class TileSpriteSet(IntEnum):
   """ Used to describe what set of tiles a tile's sprite comes from. """
@@ -318,14 +319,17 @@ class Tile:
     nbits = []
     nfilth_sprite = []
     nfilth_cap = []
+    nangle = []
     for side in shape_ordered_sides[oshape]:
       nbits.append(self.edge_bits(side))
       nfilth_sprite.append(self.edge_filth_sprite(side))
       nfilth_cap.append(self.edge_filth_cap(side))
+      nangle.append(self.edge_angle(side))
     for side in TileSide:
       self.edge_bits(side, 0)
       self.edge_filth_sprite(side, TileSpriteSet.none_0, False)
       self.edge_filth_cap(side, 0)
+      self.edge_angle(side, 0)
     for (i, side) in enumerate(shape_ordered_sides[self.shape]):
       if self.shape == TileShape.FULL:
         i = i + angle & 3
@@ -334,3 +338,101 @@ class Tile:
       self.edge_bits(side, nbits[i])
       self.edge_filth_sprite(side, *nfilth_sprite[i])
       self.edge_filth_cap(side, nfilth_cap[i])
+      self.edge_angle(side, nangle[i])
+
+  def _copy_sides(self, tile, sides):
+    for side in sides:
+      self.edge_bits(side, tile.edge_bits(side))
+      self.edge_filth_sprite(side, *tile.edge_filth_sprite(side))
+      self.edge_filth_cap(side, tile.edge_filth_cap(side))
+
+  def upscale(self, factor):
+    result = []
+
+    base_tile = Tile(TileShape.FULL)
+    base_tile.sprite_set(self.sprite_set())
+    base_tile.sprite_tile(self.sprite_tile())
+    base_tile.sprite_palette(self.sprite_palette())
+    for side in TileSide:
+      base_tile.edge_bits(side, 0x0)
+
+    if self.shape == TileShape.FULL:
+      for dx in range(factor):
+        for dy in range(factor):
+          sides = []
+          if dx == 0: sides.append(TileSide.LEFT)
+          if dx + 1 == factor: sides.append(TileSide.RIGHT)
+          if dy == 0: sides.append(TileSide.TOP)
+          if dy + 1 == factor: sides.append(TileSide.BOTTOM)
+          tile = copy.deepcopy(base_tile)
+          tile._copy_sides(self, sides)
+          result.append((dx, dy, tile))
+
+    elif self.shape == TileShape.BIG_1:
+      for dx in range(factor):
+        for dy in range(dx // 2, factor):
+          sides = []
+          if dy == dx // 2:
+            sides.append(TileSide.TOP)
+            base_tile.shape = (TileShape.SMALL_1 if (dx + factor) % 2 else
+                               TileShape.BIG_1)
+          else:
+            base_tile.shape = TileShape.FULL
+          if dx == 0: sides.append(TileSide.LEFT)
+          if dy + 1 == factor: sides.append(TileSide.BOTTOM)
+          tile = copy.deepcopy(base_tile)
+          tile._copy_sides(self, sides)
+          result.append((dx, dy, tile))
+    elif self.shape == TileShape.SMALL_1:
+      for dx in range(factor):
+        for dy in range((factor + dx) // 2, factor):
+          sides = []
+          if dy == (factor + dx) // 2:
+            sides.append(TileSide.TOP)
+            base_tile.shape = (TileShape.SMALL_1 if (dx + factor) % 2 else
+                               TileShape.BIG_1)
+          else:
+            base_tile.shape = TileShape.FULL
+          if dy + 1 == factor: sides.append(TileSide.BOTTOM)
+          tile = copy.deepcopy(base_tile)
+          tile._copy_sides(self, sides)
+          result.append((dx, dy, tile))
+    elif self.shape == TileShape.HALF_A:
+      for dx in range(factor):
+        for dy in range(dx, factor):
+          sides = []
+          if dx == dy:
+            sides.append(TileSide.TOP)
+            base_tile.shape = TileShape.HALF_A
+          else:
+            base_tile.shape = TileShape.FULL
+          if dx == 0: sides.append(TileSide.LEFT)
+          if dy + 1 == factor: sides.append(TileSide.BOTTOM)
+          tile = copy.deepcopy(base_tile)
+          tile._copy_sides(self, sides)
+          result.append((dx, dy, tile))
+    elif self.shape == TileShape.BIG_5 or self.shape == TileShape.SMALL_5:
+      self.transform([[-1, 0, 0], [0, 1, 0], [0, 0, 1]])
+      oresult = self.upscale(factor)
+      rmat = [[-1, 0, factor - 1], [0, 1, 0], [0, 0, 1]]
+      self.transform(rmat)
+
+      result = []
+      for (dx, dy, tile) in oresult:
+        tile.transform(rmat)
+        result.append((dx * rmat[0][0] + dy * rmat[0][1] + rmat[0][2],
+                       dx * rmat[1][0] + dy * rmat[1][1] + rmat[1][2],
+                       tile))
+    else:
+      self.transform([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+      oresult = self.upscale(factor)
+      rmat = [[0, 1, 0], [-1, 0, factor - 1], [0, 0, 1]]
+      self.transform(rmat)
+
+      result = []
+      for (dx, dy, tile) in oresult:
+        tile.transform(rmat)
+        result.append((dx * rmat[0][0] + dy * rmat[0][1] + rmat[0][2],
+                       dx * rmat[1][0] + dy * rmat[1][1] + rmat[1][2],
+                       tile))
+    return result

@@ -34,6 +34,30 @@ class BitWriter:
     if bits != 0:
       self.data.append(val & ((1 << bits) - 1))
 
+  def write_big(self, bits, val):
+    """ Writes `val` as a `bits` bit integer in big endian order to the
+        bit stream.
+
+        bits -- The number of bits in `val`.
+        val -- The value of the integer.
+    """
+    if val < 0:
+      val += 1 << bits
+
+    off = self.pos & 0x7
+    self.pos += bits
+    if off != 0:
+      cnt = min(8 - off, bits)
+      self.data[-1] |= ((val >> (bits - cnt)) & ((1 << cnt) - 1)) << off
+      bits -= cnt
+
+    while bits >= 8:
+      self.data.append((val >> (bits - 8)) & 0xFF)
+      bits -= 8
+
+    if bits != 0:
+      self.data.append(val & ((1 << bits) - 1))
+
   def bytes(self):
     """ Returns a bytes object containing all written data so far. """
     return bytes(self.data)

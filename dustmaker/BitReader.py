@@ -38,6 +38,33 @@ class BitReader:
 
     return result
 
+  def read_big(self, bits, signed = False):
+    """ Reads the next `bits` bits into an integer in little endian order.
+
+        bits -- The number of bits to read.
+        signed -- Indicates if the MSB is a sign bit.
+    """
+    result = 0
+
+    ind = self.pos >> 3
+    off = self.pos & 0x7
+    if off != 0:
+      result = self.data[ind] >> off
+      ind += 1
+
+    shift = (8 - off) & 0x7
+    while shift < bits:
+      result = (result << 8) | self.data[ind]
+      ind += 1
+      shift += 8
+
+    result = result >> (shift - bits)
+    if signed and (result & (1 << bits - 1)) != 0:
+      result -= 1 << bits
+    self.pos += bits
+
+    return result
+
   def align(self, size = 8):
     """ Aligns the bit stream to a given multiple of bits.
         Default alignment is 8-bit alignment.

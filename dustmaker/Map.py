@@ -1,5 +1,6 @@
 from .MapException import MapException
 from .Var import Var, VarType
+from .Tile import TileSide, tile_maximal_bits
 
 import copy
 
@@ -303,3 +304,25 @@ class Map:
     times %= 4
     self.transform([[cs[times], -sn[times], 0], [sn[times], cs[times], 0],
                     [0, 0, 1]])
+
+  def upscale(self, factor):
+    """ Increase the size of the map along each axis by `factor`. """
+    self.transform([[factor, 0, 0], [0, factor, 0], [0, 0, 1]])
+    for ((layer, x, y), tile) in list(self.tiles.items()):
+      del self.tiles[(layer, x, y)]
+      for (dx, dy, ntile) in tile.upscale(factor):
+        self.add_tile(layer, x + dx, y + dy, ntile)
+
+  def calculate_edge_bits(self):
+    """ Calculate the proper collision bits on all tiles. """
+    dx = [0, 0, -1, 1]
+    dy = [-1, 1, 0, 0]
+    for ((layer, x, y), tile) in self.tiles.items():
+      for side in TileSide:
+        if tile_maximal_bits[tile.shape][side] == 15:
+          tk = (layer, x + dx[side], y + dy[side])
+          if (not tk in self.tiles or
+              tile_maximal_bits[self.tiles[tk].shape][side ^ 1] != 15):
+            tile.edge_bits(side, tile_maximal_bits[tile.shape][side])
+        elif tile_maximal_bits[tile.shape][side]:
+          tile.edge_bits(side, tile_maximal_bits[tile.shape][side])

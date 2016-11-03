@@ -3,8 +3,8 @@ from enum import IntEnum
 class VarType(IntEnum):
   NULL = 0
   BOOL = 1
-  UINT = 2
-  INT = 3
+  INT = 2
+  UINT = 3
   FLOAT = 4
   STRING = 5
   VEC2 = 10

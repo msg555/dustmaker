@@ -8,18 +8,18 @@ from .MapException import MapParseException
 
 import zlib
 
-def _read_expect(reader, data):
+def read_expect(reader, data):
   for x in data:
     if x != reader.read(8):
       raise MapParseException("unexpected data")
 
-def _read_float(reader, ibits, fbits):
+def read_float(reader, ibits, fbits):
   sign = 1 - 2 * reader.read(1)
   ipart = reader.read(ibits - 1)
   fpart = reader.read(fbits)
   return sign * ipart + 1.0 * fpart / (1 << (fbits - 1))
 
-def _read_6bit_str(reader):
+def read_6bit_str(reader):
   len = reader.read(6)
   chrs = []
   for i in range(len):
@@ -36,12 +36,12 @@ def _read_6bit_str(reader):
       chrs.append('{')
   return ''.join(chrs)
 
-def _read_var_type(reader, type):
+def read_var_type(reader, type):
   if type == VarType.NULL: return None
   if type == VarType.BOOL: return reader.read(1) == 1
   if type == VarType.UINT: return reader.read(32)
   if type == VarType.INT: return reader.read(32, True)
-  if type == VarType.FLOAT: return _read_float(reader, 32, 32)
+  if type == VarType.FLOAT: return read_float(reader, 32, 32)
 
   if type == VarType.STRING:
     chrs = []
@@ -51,8 +51,8 @@ def _read_var_type(reader, type):
     return ''.join(chrs)
 
   if type == VarType.VEC2:
-    f0 = _read_float(reader, 32, 32)
-    f1 = _read_float(reader, 32, 32)
+    f0 = read_float(reader, 32, 32)
+    f1 = read_float(reader, 32, 32)
     return (f0, f1)
 
   if type == VarType.ARRAY:
@@ -60,28 +60,28 @@ def _read_var_type(reader, type):
     alen = reader.read(16)
     val = []
     for i in range(alen):
-      val.append(Var(atype, _read_var_type(reader, atype)))
+      val.append(Var(atype, read_var_type(reader, atype)))
     return (atype, val)
 
   raise MapParseException("unknown var type")
 
-def _read_var(reader):
+def read_var(reader):
   type = VarType(reader.read(4))
   if type == VarType.NULL:
     return None
 
-  str = _read_6bit_str(reader)
-  return (str, Var(type, _read_var_type(reader, type)))
+  str = read_6bit_str(reader)
+  return (str, Var(type, read_var_type(reader, type)))
 
-def _read_var_map(reader):
+def read_var_map(reader):
   result = {}
   while True:
-    var = _read_var(reader)
+    var = read_var(reader)
     if var is None:
       return result
     result[var[0]] = var[1]
 
-def _read_segment(reader, map, xoffset, yoffset):
+def read_segment(reader, map, xoffset, yoffset):
   segment_size = reader.read(32)
   version = reader.read(16)
   xoffset += reader.read(8) * 16
@@ -102,6 +102,7 @@ def _read_segment(reader, map, xoffset, yoffset):
     for i in range(layers):
       layer = reader.read(8)
       tiles = reader.read(10)
+      print(tiles)
 
       for j in range(tiles):
         xpos = reader.read(5)
@@ -131,8 +132,8 @@ def _read_segment(reader, map, xoffset, yoffset):
 
       layer = reader.read(8)
       layer_sub = reader.read(8)
-      xpos = _read_float(reader, 28, 4)
-      ypos = _read_float(reader, 28, 4)
+      xpos = read_float(reader, 28, 4)
+      ypos = read_float(reader, 28, 4)
       rotation = reader.read(16)
       scale_x = reader.read(1) == 1
       scale_y = reader.read(1) == 1
@@ -152,20 +153,20 @@ def _read_segment(reader, map, xoffset, yoffset):
       if id < 0:
         continue
 
-      type = _read_6bit_str(reader)
-      xpos = _read_float(reader, 32, 8)
-      ypos = _read_float(reader, 32, 8)
+      type = read_6bit_str(reader)
+      xpos = read_float(reader, 32, 8)
+      ypos = read_float(reader, 32, 8)
       rotation = reader.read(16)
       layer = reader.read(8)
       unk2 = reader.read(1)
       unk3 = reader.read(1)
       unk4 = reader.read(1)
-      vars = _read_var_map(reader)
+      vars = read_var_map(reader)
 
       map.add_entity(xpos / 48, ypos / 48, Entity._from_raw(
                      type, vars, rotation, layer, unk2, unk3, unk4), id)
 
-def _read_region(reader, map):
+def read_region(reader, map):
   region_len = reader.read(32)
   uncompressed_len = reader.read(32)
   offx = reader.read(16, True)
@@ -177,14 +178,14 @@ def _read_region(reader, map):
   reader = BitReader(zlib.decompress(reader.read_bytes(region_len - 17)))
   for i in range(segments):
     reader.align(8)
-    _read_segment(reader, map, offx * 256, offy * 256)
+    read_segment(reader, map, offx * 256, offy * 256)
 
   if has_backdrop:
     reader.align(8)
-    _read_segment(reader, map.backdrop, offx * 16, offy * 16)
+    read_segment(reader, map.backdrop, offx * 16, offy * 16)
 
-def _read_metadata(reader):
-  _read_expect(reader, b"DF_MTD")
+def read_metadata(reader):
+  read_expect(reader, b"DF_MTD")
 
   version = reader.read(16)
   region_offset = reader.read(32)
@@ -209,7 +210,7 @@ def read_map(data):
   """
   try:
     reader = BitReader(data)
-    _read_expect(reader, b"DF_LVL")
+    read_expect(reader, b"DF_LVL")
 
     version = reader.read(16)
     if version <= 42:
@@ -217,7 +218,7 @@ def read_map(data):
 
     filesize = reader.read(32)
     num_regions = reader.read(32)
-    meta = _read_metadata(reader)
+    meta = read_metadata(reader)
 
     sshot_data = b""
     if version > 43:
@@ -225,13 +226,13 @@ def read_map(data):
       sshot_data = reader.read_bytes(sshot_len)
 
     map = Map()
-    map.vars = _read_var_map(reader)
+    map.vars = read_var_map(reader)
     map.sshot = sshot_data
 
     reader.align(8)
     reader.skip(num_regions * 32)
-    while reader.more():
-      _read_region(reader, map)
+    for i in range(num_regions):
+      read_region(reader, map)
     return map
   except MapParseException as e:
     raise e

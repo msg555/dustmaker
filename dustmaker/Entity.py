@@ -1,6 +1,7 @@
 from .Var import Var, VarType
 
 import math
+import copy
 
 known_types = []
 
@@ -14,10 +15,11 @@ class Entity:
     entity.type = type
     return entity
 
-  def __init__(self, vars = {}, rotation = 0,
+  def __init__(self, vars = None, rotation = 0,
                layer = 18, unk2 = 1, unk3 = 1, unk4 = 1):
     if hasattr(self, "TYPE_IDENTIFIER"):
       self.type = self.TYPE_IDENTIFIER
+    vars = copy.deepcopy(vars) if vars is not None else {}
     self.vars = vars
     self.rotation = rotation
     self.layer = layer
@@ -41,9 +43,52 @@ class Entity:
       self.unk3 = 1 - self.unk3
       self.rotation = -self.rotation & 0xFFFF
 
+class Emitter(Entity):
+  TYPE_IDENTIFIER = "entity_emitter"
+
+  def __init__(self, vars = None, rotation = 0,
+               layer = 18, unk2 = 0, unk3 = 0, unk4 = 0):
+    vars = copy.deepcopy(vars) if vars is not None else {}
+    if not 'width' in vars:
+      vars['width'] = Var(VarType.UINT, 480)
+    if not 'height' in vars:
+      vars['height'] = Var(VarType.UINT, 480)
+    if not 'r_rotation' in vars:
+      vars['r_rotation'] = Var(VarType.BOOL, False)
+    if not 'r_area' in vars:
+      vars['r_area'] = Var(VarType.BOOL, False)
+    if not 'e_rotation' in vars:
+      vars['e_rotation'] = Var(VarType.UINT, 0)
+    if not 'draw_depth_sub' in vars:
+      vars['draw_depth_sub'] = Var(VarType.INT, 12)
+    if not 'emitter_id' in vars:
+      vars['emitter_id'] = Var(VarType.UINT, 0)
+    super(Emitter, self).__init__(vars, rotation, layer, unk2, unk3, unk4)
+
+  def emitter_id(self, val = None):
+    result = self.vars['emitter_id'].value
+    if not val is None:
+      self.vars['emitter_id'].value = val
+    return result
+
+  def width(self, val = None):
+    result = self.vars['width'].value / 48.0
+    if not val is None:
+      self.vars['width'].value = round(val * 48)
+    return result
+
+  def height(self, val = None):
+    result = self.vars['height'].value / 48.0
+    if not val is None:
+      self.vars['height'].value = round(val * 48)
+    return result
+
+known_types.append(Emitter)
+
 class TriggerArea(Entity):
-  def __init__(self, vars, rotation = 0,
+  def __init__(self, vars = None, rotation = 0,
                layer = 0, unk2 = 0, unk3 = 0, unk4 = 0):
+    vars = copy.deepcopy(vars) if vars is not None else {}
     if not 'trigger_area' in vars:
       vars['trigger_area'] = Var(VarType.ARRAY, (VarType.VEC2, []))
     super(TriggerArea, self).__init__(vars, rotation, layer, unk2, unk3, unk4)
@@ -85,21 +130,33 @@ class EndZone(TriggerArea):
 known_types.append(EndZone)
 
 class Trigger(Entity):
-  def __init__(self, vars, rotation = 0,
+  def __init__(self, vars = None, rotation = 0,
                layer = 0, unk2 = 0, unk3 = 0, unk4 = 0):
+    vars = copy.deepcopy(vars) if vars is not None else {}
     if not 'width' in vars:
       vars['width'] = Var(VarType.UINT, 500)
     super(Trigger, self).__init__(vars, rotation, layer, unk2, unk3, unk4)
+
+  def width(self, val = None):
+    result = self.vars['width'].value / 48.0
+    if not val is None:
+      self.vars['width'].value = round(val * 48)
+    return result
 
 class FogTrigger(Trigger):
   TYPE_IDENTIFIER = "fog_trigger"
 
 known_types.append(FogTrigger)
 
+class SpecialTrigger(Trigger):
+  TYPE_IDENTIFIER = "special_trigger"
+
+known_types.append(SpecialTrigger)
+
 class DeathZone(Entity):
   TYPE_IDENTIFIER = "kill_box"
 
-  def __init__(self, vars, rotation = 0,
+  def __init__(self, vars = {}, rotation = 0,
                layer = 0, unk2 = 0, unk3 = 0, unk4 = 0):
     if not 'width' in vars:
       vars['width'] = Var(VarType.INT, 1)
@@ -131,8 +188,9 @@ known_types.append(DeathZone)
 class AIController(Entity):
   TYPE_IDENTIFIER = "AI_controller"
 
-  def __init__(self, vars, rotation = 0,
+  def __init__(self, vars = None, rotation = 0,
                layer = 0, unk2 = 0, unk3 = 0, unk4 = 0):
+    vars = copy.deepcopy(vars) if vars is not None else {}
     if not 'puppet_id' in vars:
       vars['puppet_id'] = Var(VarType.INT, 0)
     if not 'nodes' in vars:
@@ -184,8 +242,9 @@ known_types.append(AIController)
 class CameraNode(Entity):
   TYPE_IDENTIFIER = "camera_node"
 
-  def __init__(self, vars, rotation = 0,
+  def __init__(self, vars = None, rotation = 0,
                layer = 0, unk2 = 0, unk3 = 0, unk4 = 0):
+    vars = copy.deepcopy(vars) if vars is not None else {}
     if not 'c_node_ids' in vars:
       vars['c_node_ids'] = Var(VarType.ARRAY, (VarType.INT, []))
     super(CameraNode, self).__init__(vars, rotation, layer, unk2, unk3, unk4)
@@ -212,13 +271,39 @@ class CameraNode(Entity):
     for i in range(self.connection_count()):
       self.connection(i, id_map[self.connection(i)])
 
+  def zoom(self, ind, val = None):
+    result = self.vars['zoom_h'].value
+    if not val is None:
+      self.vars['zoom_h'].value = val
+    return result
+
+  def width(self, ind, val = None):
+    result = self.vars['width'].value
+    if not val is None:
+      self.vars['width'].value = val
+    return result
+
+  def transform(self, mat):
+    scale = math.sqrt(abs(mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]))
+    if 'zoom_h' in self.vars:
+      self.vars['zoom_h'].value = int(self.vars['zoom_h'].value * scale)
+    if 'width' in self.vars:
+      self.vars['width'].value = int(self.vars['width'].value * scale)
+    if 'control_width' in self.vars:
+      for var in self.vars['control_width'].value[1]:
+        var.value = (var.value[0] * scale, var.value[1] * scale)
+    if 'test_width' in self.vars:
+      for var in self.vars['test_width'].value[1]:
+        var.value = int(var.value * scale)
+
 known_types.append(CameraNode)
 
 class LevelEnd(Entity):
   TYPE_IDENTIFIER = "level_end"
 
-  def __init__(self, vars, rotation = 0,
+  def __init__(self, vars = None, rotation = 0,
                layer = 0, unk2 = 0, unk3 = 0, unk4 = 0):
+    vars = copy.deepcopy(vars) if vars is not None else {}
     if not 'ent_list' in vars:
       vars['ent_list'] = Var(VarType.ARRAY, (VarType.INT, []))
     super(LevelEnd, self).__init__(vars, rotation, layer, unk2, unk3, unk4)
@@ -247,8 +332,47 @@ class LevelEnd(Entity):
 
 known_types.append(LevelEnd)
 
+class ScoreBook(Entity):
+  TYPE_IDENTIFIER = "score_book"
+
+known_types.append(ScoreBook)
+
+class LevelDoor(Entity):
+  TYPE_IDENTIFIER = "level_door"
+
+  def __init__(self, vars = None, rotation = 0,
+               layer = 0, unk2 = 0, unk3 = 0, unk4 = 0):
+    vars = copy.deepcopy(vars) if vars is not None else {}
+    if not 'file_name' in vars:
+      vars['file_name'] = Var(VarType.STRING, "")
+    if not 'width' in vars:
+      vars['width'] = Var(VarType.UINT, 100)
+    if not 'door_set' in vars:
+      vars['door_set'] = Var(VarType.UINT, 0)
+    super(LevelDoor, self).__init__(vars, rotation, layer, unk2, unk3, unk4)
+
+  def file_name(self, val = None):
+    result = self.vars['file_name'].value
+    if not val is None:
+      self.vars['file_name'].value = val
+    return result
+
+  def width(self, val = None):
+    result = self.vars['width'].value
+    if not val is None:
+      self.vars['width'].value = val
+    return result
+
+  def door_set(self, val = None):
+    result = self.vars['door_set'].value
+    if not val is None:
+      self.vars['door_set'].value = val
+    return result
+
+known_types.append(LevelDoor)
+
 class Enemy(Entity):
-  def __init__(self, vars = {}, rotation = 0, layer = 18, unk2 = 1,
+  def __init__(self, vars = None, rotation = 0, layer = 18, unk2 = 1,
                unk3 = 1, unk4 = 1):
     super(Enemy, self).__init__(vars, rotation, layer, unk2, unk3, unk4)
 
@@ -361,6 +485,14 @@ class EnemyHawk(Enemy):
   TYPE_IDENTIFIER = "enemy_hawk"
   def filth(self): return 3
 
+class EnemyKey(Enemy):
+  TYPE_IDENTIFIER = "enemy_key"
+  def filth(self): return 1
+
+class EnemyDoor(Enemy):
+  TYPE_IDENTIFIER = "enemy_door"
+  def filth(self): return 0
+
 known_types.append(EnemyLightPrism)
 known_types.append(EnemyHeavyPrism)
 known_types.append(EnemySlimeBeast)
@@ -389,6 +521,8 @@ known_types.append(EnemyGargoyleBig)
 known_types.append(EnemyGargoyleSmall)
 known_types.append(EnemyBook)
 known_types.append(EnemyHawk)
+known_types.append(EnemyKey)
+known_types.append(EnemyDoor)
 
 class Apple(Entity):
   TYPE_IDENTIFIER = "hittable_apple"
