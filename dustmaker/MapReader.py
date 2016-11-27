@@ -102,7 +102,6 @@ def read_segment(reader, map, xoffset, yoffset):
     for i in range(layers):
       layer = reader.read(8)
       tiles = reader.read(10)
-      print(tiles)
 
       for j in range(tiles):
         xpos = reader.read(5)
