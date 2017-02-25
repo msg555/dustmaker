@@ -60,6 +60,10 @@ def _write_var_type(writer, var):
       _write_var_type(writer, x)
     return
 
+  if type == VarType.STRUCT:
+    _write_var_map(writer, value)
+    return
+
   raise MapParseException("unknown var type")
 
 def _write_var(writer, key, var):

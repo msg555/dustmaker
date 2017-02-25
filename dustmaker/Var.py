@@ -8,6 +8,7 @@ class VarType(IntEnum):
   FLOAT = 4
   STRING = 5
   VEC2 = 10
+  STRUCT = 14
   ARRAY = 15
 
 class Var:

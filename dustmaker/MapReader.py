@@ -63,6 +63,9 @@ def read_var_type(reader, type):
       val.append(Var(atype, read_var_type(reader, atype)))
     return (atype, val)
 
+  if type == VarType.STRUCT:
+    return read_var_map(reader)
+
   raise MapParseException("unknown var type")
 
 def read_var(reader):
