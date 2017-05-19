@@ -5,9 +5,10 @@ from .Entity import Entity, Enemy
 from .Var import Var, VarType
 from .BitWriter import BitWriter
 from .MapException import MapParseException
+from .LevelType import LevelType
 
 import zlib
-from math import floor
+from math import floor, log
 
 def _write_float(writer, ibits, fbits, val):
   ipart = abs(floor(val))
@@ -76,7 +77,7 @@ def _write_var_map(writer, vars):
     _write_var(writer, key, vars[key])
   writer.write(4, VarType.NULL)
 
-def _write_segment(base_writer, seg_x, seg_y, segment):
+def _write_segment(base_writer, seg_x, seg_y, segment, config):
   writer = BitWriter()
 
   flags = 0
@@ -131,14 +132,31 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
 
     writer.write(16, len(segment['props']))
     for (id, layer, x, y, prop) in segment['props']:
+      x *= 48
+      y *= 48
       writer.write(32, id)
       writer.write(8, layer)
       writer.write(8, prop.layer_sub)
-      _write_float(writer, 28, 4, x * 48)
-      _write_float(writer, 28, 4, y * 48)
+      if config['scaled_props']:
+        scale_lg = int(round(log(prop.scale) / log(50.0) * 24.0)) + 32
+        x_scale = (scale_lg // 7) ^ 0x4
+        y_scale = (scale_lg % 7) ^ 0x4
+        x_int = int(abs(x))
+        y_int = int(abs(y))
+        x_sgn = 1 if x < 0 else 0
+        y_sgn = 1 if y < 0 else 0
+        writer.write(1, x_sgn);
+        writer.write(27, x_int)
+        writer.write(4, x_scale)
+        writer.write(1, y_sgn);
+        writer.write(27, y_int)
+        writer.write(4, y_scale)
+      else :
+        _write_float(writer, 28, 4, x)
+        _write_float(writer, 28, 4, y)
       writer.write(16, prop.rotation)
-      writer.write(1, 1 if prop.scale_x else 0)
-      writer.write(1, 1 if prop.scale_y else 0)
+      writer.write(1, 1 if prop.flip_x else 0)
+      writer.write(1, 1 if prop.flip_y else 0)
       writer.write(8, prop.prop_set)
       writer.write(12, prop.prop_group)
       writer.write(12, prop.prop_index)
@@ -181,14 +199,15 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
   writer.write(32, flags)
   writer.write_bytes(writer_body.bytes())
 
-def _write_region(x, y, region):
+def _write_region(x, y, region, config):
   writer = BitWriter()
   for coord in sorted(region['segments'].keys()):
     writer.align(8)
-    _write_segment(writer, coord[0], coord[1], region['segments'][coord])
+    _write_segment(writer, coord[0], coord[1],
+                   region['segments'][coord], config)
   if region['backdrop']['present']:
     writer.align(8)
-    _write_segment(writer, 0, 0, region['backdrop'])
+    _write_segment(writer, 0, 0, region['backdrop'], config)
 
   data = zlib.compress(writer.bytes())
 
@@ -209,7 +228,7 @@ def _segment_get(segment_map, x, y):
     return segment_map[(sx, sy)]
 
   seg = dict(
-    tiles = [[] for x in range(21)],
+    tiles = [[] for x in range(256)],
     entities = [],
     props = [],
   )
@@ -226,7 +245,7 @@ def _region_get(region_map, x, y):
     segments = {},
     backdrop = dict(
       present = False,
-      tiles = [[] for x in range(21)],
+      tiles = [[] for x in range(256)],
       entities = [],
       props = [],
     )
@@ -298,6 +317,8 @@ def write_map(map):
 
       On error raises a MapException.
   """
+  config = {"scaled_props": map.can_use_scaled_props()}
+
   writer_front = BitWriter()
   _write_var_map(writer_front, map.vars)
   var_size = writer_front.byte_count()
@@ -307,7 +328,7 @@ def write_map(map):
   for coord in sorted(region_map.keys(), key = _norm_for_sort):
     writer_back.align(8)
     writer_front.write(32, writer_back.byte_count())
-    reg_data = _write_region(coord[0], coord[1], region_map[coord])
+    reg_data = _write_region(coord[0], coord[1], region_map[coord], config)
     writer_back.write(32, len(reg_data) + 4)
     writer_back.write_bytes(reg_data)
 

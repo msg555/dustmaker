@@ -5,8 +5,11 @@ from .Entity import Entity
 from .Var import Var, VarType
 from .BitReader import BitReader
 from .MapException import MapParseException
+from .LevelType import LevelType
 
 import zlib
+
+from math import pow
 
 def read_expect(reader, data):
   for x in data:
@@ -84,7 +87,7 @@ def read_var_map(reader):
       return result
     result[var[0]] = var[1]
 
-def read_segment(reader, map, xoffset, yoffset):
+def read_segment(reader, map, xoffset, yoffset, config):
   segment_size = reader.read(32)
   version = reader.read(16)
   xoffset += reader.read(8) * 16
@@ -134,18 +137,35 @@ def read_segment(reader, map, xoffset, yoffset):
 
       layer = reader.read(8)
       layer_sub = reader.read(8)
-      xpos = read_float(reader, 28, 4)
-      ypos = read_float(reader, 28, 4)
+
+      scale = 1
+      if config['scaled_props']:
+        x_sgn = reader.read(1)
+        x_int = reader.read(27)
+        x_scale = (reader.read(4) & 0x7) ^ 0x4
+        y_sgn = reader.read(1)
+        y_int = reader.read(27)
+        y_scale = (reader.read(4) & 0x7) ^ 0x4
+
+        xpos = (-1 if x_sgn != 0 else 1) * x_int
+        ypos = (-1 if y_sgn != 0 else 1) * y_int
+
+        scale_lg = x_scale * 7 + y_scale
+        scale = pow(50.0, (scale_lg - 32.0) / 24.0)
+      else:
+        xpos = read_float(reader, 28, 4)
+        ypos = read_float(reader, 28, 4)
+
       rotation = reader.read(16)
-      scale_x = reader.read(1) == 1
-      scale_y = reader.read(1) == 1
+      flip_x = reader.read(1) != 0
+      flip_y = reader.read(1) != 0
       prop_set = reader.read(8)
       prop_group = reader.read(12)
       prop_index = reader.read(12)
       palette = reader.read(8)
 
       map.add_prop(layer, xpos / 48, ypos / 48, Prop(
-                   layer_sub, rotation, scale_x, scale_y,
+                   layer_sub, rotation, flip_x, flip_y, scale,
                    prop_set, prop_group, prop_index, palette), id)
 
   if flags & 4:
@@ -168,7 +188,7 @@ def read_segment(reader, map, xoffset, yoffset):
       map.add_entity(xpos / 48, ypos / 48, Entity._from_raw(
                      type, vars, rotation, layer, unk2, unk3, unk4), id)
 
-def read_region(reader, map):
+def read_region(reader, map, config):
   region_len = reader.read(32)
   uncompressed_len = reader.read(32)
   offx = reader.read(16, True)
@@ -180,11 +200,11 @@ def read_region(reader, map):
   reader = BitReader(zlib.decompress(reader.read_bytes(region_len - 17)))
   for i in range(segments):
     reader.align(8)
-    read_segment(reader, map, offx * 256, offy * 256)
+    read_segment(reader, map, offx * 256, offy * 256, config)
 
   if has_backdrop:
     reader.align(8)
-    read_segment(reader, map.backdrop, offx * 16, offy * 16)
+    read_segment(reader, map.backdrop, offx * 16, offy * 16, config)
 
 def read_metadata(reader):
   read_expect(reader, b"DF_MTD")
@@ -231,10 +251,12 @@ def read_map(data):
     map.vars = read_var_map(reader)
     map.sshot = sshot_data
 
+    config = {"scaled_props": map.can_use_scaled_props()}
+
     reader.align(8)
     reader.skip(num_regions * 32)
     for i in range(num_regions):
-      read_region(reader, map)
+      read_region(reader, map, config)
     return map
   except MapParseException as e:
     raise e

@@ -1,6 +1,7 @@
 from .MapException import MapException
 from .Var import Var, VarType
 from .Tile import TileSide, tile_maximal_bits
+from .LevelType import LevelType
 
 import copy
 
@@ -43,6 +44,8 @@ class Map:
       self.sshot = b""
       self.entities = {}
       self.backdrop = Map(self)
+
+    self.dustmod_version("dustmaker")
 
   def _next_id(self):
     if self.parent:
@@ -92,13 +95,50 @@ class Map:
         val - If not None sets the virtual character flag for the map.
     """
     return self._var_access("vector_character", VarType.BOOL, val, False)
-  
+
   def level_type(self, val = None):
     """ Returns the type of the level (e.g., Normal, Nexus, etc.).
-        
+
         val - If not None sets the level type. Use the LevelType enum.
     """
     return self._var_access("level_type", VarType.UINT, val, 0)
+
+  def dustmod_version(self, val = None):
+    """ Returns the dustmod version used to create this map.
+    """
+    """ val - If not None sets the level dustmod version.
+    """
+    return self._var_access("dustmod_version", VarType.STRING, val, "")
+
+  def can_use_scaled_props(self, force = False):
+    """ Returns whether the current map type supports scaled props.
+
+        forceVersion - If the level type or version is incompatible with scaled
+                       props change those properties.  The return value reflects
+                       the prior support for scaled props.
+    """
+    lt = self.level_type()
+    ver = self.dustmod_version()
+
+    if lt == LevelType.DUSTMOD:
+      return True
+
+    if lt != LevelType.NEXUS and lt != LevelType.NEXUS_MP:
+      if force:
+        level_type(LevelType.DUSTMOD)
+      return False
+
+    if ver.startswith("dustmaker"):
+      return True
+    try:
+      if [int(x) for x in ver.split(".")] >= [7, 5, 1]:
+        return True
+    except ValueError:
+      pass
+
+    if force:
+      dustmod_version("dustmaker")
+    return False
 
   def add_entity(self, x, y, entity, id = None):
     """ Adds a new entity to the map and returns its id.
@@ -248,7 +288,6 @@ class Map:
       self.entities.update(copy.deepcopy(map.entities))
       self.backdrop.merge_map(map.backdrop, False)
 
-  
   def transform(self, mat):
     """ Transforms the map with the given affine transformation matrix.  Note
         that this will probably not produce desirable results if the
