@@ -20,7 +20,7 @@ class Prop:
     self.rotation = self.rotation - int(0x10000 * angle / math.pi / 2) & 0xFFFF
 
     det = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
-    scale *= sqrt(abs(det));
+    self.scale *= sqrt(abs(det));
     if det < 0:
       self.flip_x = not self.flip_x
       self.rotation = -self.rotation & 0xFFFF

@@ -77,7 +77,7 @@ def _write_var_map(writer, vars):
     _write_var(writer, key, vars[key])
   writer.write(4, VarType.NULL)
 
-def _write_segment(base_writer, seg_x, seg_y, segment, config):
+def _write_segment(base_writer, seg_x, seg_y, segment):
   writer = BitWriter()
 
   flags = 0
@@ -137,23 +137,21 @@ def _write_segment(base_writer, seg_x, seg_y, segment, config):
       writer.write(32, id)
       writer.write(8, layer)
       writer.write(8, prop.layer_sub)
-      if config['scaled_props']:
-        scale_lg = int(round(log(prop.scale) / log(50.0) * 24.0)) + 32
-        x_scale = (scale_lg // 7) ^ 0x4
-        y_scale = (scale_lg % 7) ^ 0x4
-        x_int = int(abs(x))
-        y_int = int(abs(y))
-        x_sgn = 1 if x < 0 else 0
-        y_sgn = 1 if y < 0 else 0
-        writer.write(1, x_sgn);
-        writer.write(27, x_int)
-        writer.write(4, x_scale)
-        writer.write(1, y_sgn);
-        writer.write(27, y_int)
-        writer.write(4, y_scale)
-      else :
-        _write_float(writer, 28, 4, x)
-        _write_float(writer, 28, 4, y)
+
+      scale_lg = int(round(log(prop.scale) / log(50.0) * 24.0)) + 32
+      x_scale = (scale_lg // 7) ^ 0x4
+      y_scale = (scale_lg % 7) ^ 0x4
+      x_int = int(abs(x))
+      y_int = int(abs(y))
+      x_sgn = 1 if x < 0 else 0
+      y_sgn = 1 if y < 0 else 0
+      writer.write(1, x_sgn);
+      writer.write(27, x_int)
+      writer.write(4, x_scale)
+      writer.write(1, y_sgn);
+      writer.write(27, y_int)
+      writer.write(4, y_scale)
+
       writer.write(16, prop.rotation)
       writer.write(1, 1 if prop.flip_x else 0)
       writer.write(1, 1 if prop.flip_y else 0)
@@ -175,16 +173,16 @@ def _write_segment(base_writer, seg_x, seg_y, segment, config):
       _write_float(writer, 32, 8, y * 48)
       writer.write(16, entity.rotation)
       writer.write(8, entity.layer)
-      writer.write(1, entity.unk2)
-      writer.write(1, entity.unk3)
-      writer.write(1, entity.unk4)
+      writer.write(1, 0 if entity.flipX else 1)
+      writer.write(1, 0 if entity.flipY else 1)
+      writer.write(1, 1 if entity.visible else 0)
       _write_var_map(writer, entity.vars)
 
   writer_body = writer
   writer = base_writer
 
   writer.write(32, 25 + writer_body.byte_count())
-  writer.write(16, 6)
+  writer.write(16, 7)
   writer.write(8, seg_x)
   writer.write(8, seg_y)
   writer.write(8, 16)
@@ -199,15 +197,15 @@ def _write_segment(base_writer, seg_x, seg_y, segment, config):
   writer.write(32, flags)
   writer.write_bytes(writer_body.bytes())
 
-def _write_region(x, y, region, config):
+def _write_region(x, y, region):
   writer = BitWriter()
   for coord in sorted(region['segments'].keys()):
     writer.align(8)
     _write_segment(writer, coord[0], coord[1],
-                   region['segments'][coord], config)
+                   region['segments'][coord])
   if region['backdrop']['present']:
     writer.align(8)
-    _write_segment(writer, 0, 0, region['backdrop'], config)
+    _write_segment(writer, 0, 0, region['backdrop'])
 
   data = zlib.compress(writer.bytes())
 
@@ -297,7 +295,7 @@ def _write_metadata(writer, var_size, map):
   writer.write_bytes(b"DF_MTD")
   writer.write(16, 4)
   writer.write(32, var_size + 32 + len(map.sshot))
-  writer.write(32, 0)
+  writer.write(32, map._min_id)
   writer.write(32, 0)
   writer.write(32, 0)
   writer.write(32, 0)
@@ -317,8 +315,6 @@ def write_map(map):
 
       On error raises a MapException.
   """
-  config = {"scaled_props": map.can_use_scaled_props()}
-
   writer_front = BitWriter()
   _write_var_map(writer_front, map.vars)
   var_size = writer_front.byte_count()
@@ -328,7 +324,7 @@ def write_map(map):
   for coord in sorted(region_map.keys(), key = _norm_for_sort):
     writer_back.align(8)
     writer_front.write(32, writer_back.byte_count())
-    reg_data = _write_region(coord[0], coord[1], region_map[coord], config)
+    reg_data = _write_region(coord[0], coord[1], region_map[coord])
     writer_back.write(32, len(reg_data) + 4)
     writer_back.write_bytes(reg_data)
 
@@ -346,3 +342,24 @@ def write_map(map):
                         len(writer_back.bytes()))
   return b"".join([writer.bytes(), writer_header.bytes(),
                    writer_front.bytes(), writer_back.bytes()])
+
+def write_var_file(header, var_data):
+  writer_back = BitWriter()
+  _write_var_map(writer_back, var_data)
+
+  writer_front = BitWriter()
+  writer_front.write_bytes(header)
+  writer_front.write(16, 1)
+  writer_front.write(32, len(header) + 6 + len(writer_back.bytes()))
+  return b"".join([writer_front.bytes(), writer_back.bytes()])
+
+def write_stat_file(var_data):
+  return write_var_file(b"DF_STA", var_data)
+
+def write_config_file(var_data):
+  return write_var_file(b"DF_CFG", var_data)
+
+def write_fog_file(var_data):
+  return write_var_file(b"DF_FOG", var_data)
+
+# TODO, support DF_EMT, DF_PRT, DF_WND

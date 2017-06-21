@@ -110,36 +110,6 @@ class Map:
     """
     return self._var_access("dustmod_version", VarType.STRING, val, "")
 
-  def can_use_scaled_props(self, force = False):
-    """ Returns whether the current map type supports scaled props.
-
-        forceVersion - If the level type or version is incompatible with scaled
-                       props change those properties.  The return value reflects
-                       the prior support for scaled props.
-    """
-    lt = self.level_type()
-    ver = self.dustmod_version()
-
-    if lt == LevelType.DUSTMOD:
-      return True
-
-    if lt != LevelType.NEXUS and lt != LevelType.NEXUS_MP:
-      if force:
-        level_type(LevelType.DUSTMOD)
-      return False
-
-    if ver.startswith("dustmaker"):
-      return True
-    try:
-      if [int(x) for x in ver.split(".")] >= [7, 5, 1]:
-        return True
-    except ValueError:
-      pass
-
-    if force:
-      dustmod_version("dustmaker")
-    return False
-
   def add_entity(self, x, y, entity, id = None):
     """ Adds a new entity to the map and returns its id.
 
