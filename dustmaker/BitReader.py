@@ -99,3 +99,9 @@ class BitReader:
         result.append(self.read(8))
       result = bytes(result)
     return result
+
+  def get_index(self):
+    return self.pos
+
+  def set_index(self, pos):
+    self.pos = pos

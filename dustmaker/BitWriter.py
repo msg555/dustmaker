@@ -87,3 +87,6 @@ class BitWriter:
     else:
       for x in data:
         self.write(8, x)
+
+  def get_index(self):
+    return self.pos

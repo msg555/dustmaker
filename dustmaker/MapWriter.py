@@ -163,12 +163,17 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
   if segment['entities']:
     flags |= 4
 
+    extra_names_writer = BitWriter()
     writer.write(16, len(segment['entities']))
     for (id, x, y, entity) in segment['entities']:
       if isinstance(entity, Enemy):
         enemy_filth += entity.filth()
       writer.write(32, id)
-      _write_6bit_str(writer, entity.type)
+      if entity.type.startswith("z_") or entity.type == "entity":
+        _write_6bit_str(writer, "entity")
+        _write_6bit_str(extra_names_writer, entity.type)
+      else:
+        _write_6bit_str(writer, entity.type)
       _write_float(writer, 32, 8, x * 48)
       _write_float(writer, 32, 8, y * 48)
       writer.write(16, entity.rotation)
@@ -178,11 +183,16 @@ def _write_segment(base_writer, seg_x, seg_y, segment):
       writer.write(1, 1 if entity.visible else 0)
       _write_var_map(writer, entity.vars)
 
+    entity_names_pos = writer.get_index()
+    writer.write_bytes(extra_names_writer.bytes())
+    writer.align()
+    writer.write(32, writer.get_index() - entity_names_pos)
+
   writer_body = writer
   writer = base_writer
 
   writer.write(32, 25 + writer_body.byte_count())
-  writer.write(16, 7)
+  writer.write(16, 8)
   writer.write(8, seg_x)
   writer.write(8, seg_y)
   writer.write(8, 16)

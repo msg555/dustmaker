@@ -39,6 +39,14 @@ class Entity:
     entity.type = type
     return entity
 
+  def access_var(self, vtype, name, val = None, default = None):
+    result = default
+    if name in self.vars:
+      result = self.vars[name].value
+    if not val is None:
+      self.vars[name] = Var(vtype, val)
+    return result
+
   def __init__(self, vars = None, rotation = 0,
                layer = 18, flipX = False, flipY = False, visible = True):
     if hasattr(self, "TYPE_IDENTIFIER"):
@@ -67,14 +75,6 @@ class Entity:
       self.flipY = not self.flipY
       self.rotation = -self.rotation & 0xFFFF
 
-  def access_var(self, vtype, name, val = None, default = None):
-    result = default
-    if name in self.vars:
-      result = self.vars[name].value
-    if not val is None:
-      self.vars[name] = Var(vtype, val)
-    return result
-
   def access_tile_var(self, vtype, name, val = None, default = None):
     if not val is None:
       val *= 48
@@ -95,16 +95,16 @@ class Emitter(Entity):
     vars = copy.deepcopy(vars) if vars is not None else {}
     super(Emitter, self).__init__(vars, rotation, layer, flipX, flipY, visible)
 
-  def e_rotation(self, val):
+  def e_rotation(self, val = None):
     return self.access_var(VarType.INT, 'e_rotation', val, 0)
 
-  def draw_depth_sub(self, val):
+  def draw_depth_sub(self, val = None):
     return self.access_var(VarType.UINT, 'draw_depth_sub', val, 0)
 
-  def r_rotation(self, val):
+  def r_rotation(self, val = None):
     return self.access_var(VarType.BOOL, 'r_rotation', val, False)
 
-  def r_area(self, val):
+  def r_area(self, val = None):
     return self.access_var(VarType.BOOL, 'r_area', val, False)
 
   def width(self, val = None):
@@ -136,24 +136,129 @@ class CheckPoint(TriggerArea):
 
 known_types.append(CheckPoint)
 
-class EndZone(TriggerArea):
+class EndZone(CheckPoint):
   TYPE_IDENTIFIER = "level_end_prox"
+
+  def finished(self, val = None):
+    return self.access_var(VarType.BOOL, 'finished', val, false)
 
 known_types.append(EndZone)
 
 class Trigger(Entity):
+  TYPE_IDENTIFIER = "base_trigger"
+
   def width(self, val = None):
     return self.access_tile_var(VarType.INT, 'width', val, 500)
+
+known_types.append(Trigger)
 
 class FogTrigger(Trigger):
   TYPE_IDENTIFIER = "fog_trigger"
 
+  def __init__(self, vars = None, rotation = 0,
+               layer = 18, flipX = False, flipY = False, visible = True):
+    super(FogTrigger, self).__init__(
+        vars, rotation, layer, flipX, flipY, visible)
+
+    grad = self.gradient()
+    colours = self.access_array(VarType.UINT, 'fog_colour')
+    pers = self.access_array(VarType.FLOAT, 'fog_per')
+    while grad.size() < 3:
+      grad.append(0)
+    while colours.size() < 21:
+      colours.append(0x111118)
+    while pers.size() < 21:
+      pers.append(0.0)
+
+  def _fog_by_index(self, index, val = None):
+    if index < 0 or index >= 26 * 21:
+      raise IndexError("invalid fog index")
+
+    colours = self.access_array(VarType.UINT, 'fog_colour')
+    pers = self.access_array(VarType.FLOAT, 'fog_per')
+    while index >= colours.size():
+      colours.append(0x111118)
+    while index >= pers.size():
+      pers.append(0.0)
+
+    result = (colours.get(index), pers.get(index))
+    if not val is None:
+      colours.set(index, val[0])
+      pers.set(index, val[1])
+    return result
+
+  def layer_fog(self, layer, val = None):
+    return self._fog_by_index(layer, val)
+
+  def sub_layer_fog(self, layer, sublayer, val = None):
+    return self._fog_by_index((sublayer + 1) * 21 + layer, val)
+
+  def speed(self, val = None):
+    return self.access_var(VarType.FLOAT, 'speed', val, 5)
+
+  def gradient(self):
+    return self.access_array(VarType.UINT, 'gradient')
+
+  def gradient_middle(self, val = None):
+    return self.access_var(VarType.FLOAT, 'gradient_middle', val, 0)
+
+  def star_bottom(self, val = None):
+    return self.access_var(VarType.FLOAT, 'star_bottom', val, 0.0)
+
+  def star_middle(self, val = None):
+    return self.access_var(VarType.FLOAT, 'star_middle', val, 0.4)
+
+  def star_top(self, val = None):
+    return self.access_var(VarType.FLOAT, 'star_top', val, 1.0)
+
+  def has_sub_layers(self, val = None):
+    return self.access_var(VarType.BOOL, 'has_sub_layers', val, False)
+
 known_types.append(FogTrigger)
+
+class AmbienceTrigger(Trigger):
+  TYPE_IDENTIFIER = "ambience_trigger"
+
+  def speed(self, val = None):
+    return self.access_var(VarType.FLOAT, 'ambience_speed', val, 5)
+
+  def sound_names(self):
+    return self.access_array(VarType.STRING, 'sound_ambience_names')
+
+  def sound_vols(self):
+    return self.access_array(VarType.FLOAT, 'sound_ambience_vol')
+
+known_types.append(AmbienceTrigger)
+
+class MusicTrigger(Trigger):
+  TYPE_IDENTIFIER = "music_trigger"
+
+  def speed(self, val = None):
+    return self.access_var(VarType.FLOAT, 'music_speed', val, 5)
+
+  def sound_names(self):
+    return self.access_array(VarType.STRING, 'sound_music_names')
+
+  def sound_vols(self):
+    return self.access_array(VarType.FLOAT, 'sound_music_vol')
+
+known_types.append(MusicTrigger)
 
 class SpecialTrigger(Trigger):
   TYPE_IDENTIFIER = "special_trigger"
 
 known_types.append(SpecialTrigger)
+
+class TextTrigger(Entity):
+  TYPE_IDENTIFIER = "text_trigger"
+
+  def hide(self, val = None):
+    return self.access_var(VarType.BOOL, 'hide', val, False)
+
+  def text(self, val = None):
+    return self.access_var(VarType.STRING, 'text_string', val, "Blank")
+
+known_types.append(TextTrigger)
 
 class DeathZone(Entity):
   TYPE_IDENTIFIER = "kill_box"
@@ -189,7 +294,7 @@ class AIController(Entity):
     if self.puppet() in id_map:
       self.puppet(id_map[self.puppet()])
     else:
-      self.puppet(-1)
+      self.puppet(0)
 
   def transform(self, mat):
     nods = self.nodes()
@@ -253,6 +358,9 @@ class LevelEnd(Entity):
     for i in range(ents.count()):
       ents.set(i, id_map[ents.get(i)])
 
+  def finished(self, val = None):
+    return self.access_var(VarType.BOOL, 'finished', val, false)
+
 known_types.append(LevelEnd)
 
 class ScoreBook(Entity):
@@ -269,13 +377,18 @@ class LevelDoor(Trigger):
   def file_name(self, val = None):
     return self.access_var(VarType.STRING, 'file_name', val, "")
 
-  def width(self, val = None):
-    return self.access_tile_var(VarType.INT, 'width', val, 100)
-
   def door_set(self, val = None):
     return self.access_var(VarType.UINT, 'door_set', val, 0)
 
 known_types.append(LevelDoor)
+
+class RedKeyDoor(Entity):
+  TYPE_IDENTIFIER = "giga_gate"
+
+  def keys_needed(self, val = None):
+    return self.access_var(VarType.INT, 'key_needed', val, 1)
+
+known_types.append(RedKeyDoor)
 
 class Enemy(Entity):
   def filth(self):
@@ -310,6 +423,9 @@ class EnemySlimeBall(Enemy):
 class EnemyTrashTire(Enemy):
   TYPE_IDENTIFIER = "enemy_trash_tire"
   def filth(self): return 3
+
+  def max_fall_speed(self, val = None):
+    return self.access_var(VarType.FLOAT, 'max_fall_speed', val, 800)
 
 class EnemyTrashBeast(Enemy):
   TYPE_IDENTIFIER = "enemy_trash_beast"
@@ -394,6 +510,27 @@ class EnemyKey(Enemy):
   TYPE_IDENTIFIER = "enemy_key"
   def filth(self): return 1
 
+  def remap_ids(self, id_map):
+    if self.door() in id_map:
+      self.door(id_map[self.door()])
+    else:
+      self.door(0)
+
+  def transform(self, mat):
+    x = self.lastX()
+    y = self.lastY()
+    self.lastX(mat[0][2] + x * mat[0][0] + y * mat[0][1])
+    self.lastY(mat[1][2] + x * mat[1][0] + y * mat[1][1])
+
+  def door(self, val = None):
+    return self.access_var(VarType.UINT, 'door', val, 0)
+
+  def lastX(self, val = None):
+    return self.access_var(VarType.FLOAT, 'lastKnowX', val, 0)
+
+  def lastY(self, val = None):
+    return self.access_var(VarType.FLOAT, 'lastKnowY', val, 0)
+
 class EnemyDoor(Enemy):
   TYPE_IDENTIFIER = "enemy_door"
   def filth(self): return 0
@@ -465,3 +602,107 @@ known_types.append(Dustwraith)
 known_types.append(Leafsprite)
 known_types.append(Trashking)
 known_types.append(Slimeboss)
+
+""" Missing persist types and vars
+
+custom_score_book
+  level_list_id
+dustmod_entity_tool
+  dm_scale
+  target_id
+dustmod_trigger
+  is_square
+filth_switch
+  height
+  width
+z_button
+  entity_ids
+  start_x
+  start_y
+z_char_force
+  character
+z_dash_trigger
+  disable
+z_kill_trigger
+  kill
+  only_dustman
+  only_enemies
+  stun
+  stun_direction
+  stun_force
+  stun_radial
+z_level_trigger
+  filename
+z_particle_trigger
+  emitters
+  particles
+z_physics_trigger
+  air_global
+  attack_force_heavy
+  attack_force_light
+  d_dash_max
+  d_skill_combo_max
+  dash_speed
+  di_global
+  di_move_max
+  di_speed
+  di_speed_wall_lock
+  fall_accel
+  fall_max
+  fric_global
+  global
+  heavy_fall_threshold
+  hitrise_speed
+  hop_a
+  hover_accel
+  hover_fall_threshold
+  idle_fric
+  jump_a
+  land_fric
+  roof_fric
+  roof_run_length
+  run_accel
+  run_accel_over
+  run_global
+  run_max
+  run_start
+  skid_fric
+  skid_threshold
+  slope_max
+  slope_slid_speed
+  wall_run_length
+  wall_slide_speed
+z_respawner
+  entity_ids
+  max_respawns
+  respawn_time
+z_scale_trigger
+  scale
+z_string_list
+  list
+z_teleport_trigger
+  tele_x
+  tele_y
+z_text_prop_trigger
+  colour
+  font
+  font_size
+  layer
+  sublayer
+  text
+  text_rotation
+  text_scale
+z_wind_generator
+  direction
+  force
+z_wind_trigger
+  pressure_accelleration
+  pressure_advection
+  pressure_diffusion
+  velocity_advection
+  velocity_diffusion
+  velocity_friction_a
+  velocity_friction_b
+  velocity_friction_c
+  vorticity
+"""

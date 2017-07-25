@@ -88,6 +88,8 @@ def read_var_map(reader):
     result[var[0]] = var[1]
 
 def read_segment(reader, map, xoffset, yoffset, config):
+  start_index = reader.get_index()
+
   segment_size = reader.read(32)
   version = reader.read(16)
   xoffset += reader.read(8) * 16
@@ -169,6 +171,13 @@ def read_segment(reader, map, xoffset, yoffset, config):
                    prop_set, prop_group, prop_index, palette), id)
 
   if flags & 4:
+    extra_names_reader = BitReader(b"")
+    if version > 7:
+      extra_names_reader = BitReader(reader.data)
+      extra_names_reader.set_index(start_index + (segment_size - 4) * 8)
+      extra_names_index = extra_names_reader.read(32)
+      extra_names_reader.skip(-extra_names_index - 32)
+
     entities = reader.read(16)
     for i in range(entities):
       id = reader.read(32, True)
@@ -176,6 +185,9 @@ def read_segment(reader, map, xoffset, yoffset, config):
         continue
 
       type = read_6bit_str(reader)
+      if type == "entity":
+        type = read_6bit_str(extra_names_reader)
+
       xpos = read_float(reader, 32, 8)
       ypos = read_float(reader, 32, 8)
       rotation = reader.read(16)
