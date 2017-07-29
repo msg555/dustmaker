@@ -288,7 +288,7 @@ class AIController(Entity):
     return self.access_array(VarType.INT, 'nodes_wait_time')
 
   def puppet(self, val = None):
-    return self.access_var(VarType.INT, 'puppet', val, 0)
+    return self.access_var(VarType.INT, 'puppet_id', val, 0)
 
   def remap_ids(self, id_map):
     if self.puppet() in id_map:
