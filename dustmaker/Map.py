@@ -141,7 +141,12 @@ class Map:
 
         Raises a MapException if the given id is already in use.
     """
-    id = self._next_id()
+    if id is None or id in self.props:
+      id = self._next_id()
+    else:
+      self._note_id(id)
+    if id in self.props:
+      raise MapException("map already has prop id")
     self.props[id] = (layer, x, y, prop)
     return id
 
@@ -157,6 +162,11 @@ class Map:
     """
     if (layer, x, y) in self.tiles:
       raise MapException("tile already exists")
+    self.tiles[(layer, x, y)] = tile
+
+  def set_tile(self, layer, x, y, tile):
+    """ Like add_tile but overwrites any existing tile.
+    """
     self.tiles[(layer, x, y)] = tile
 
   def get_tile(self, layer, x, y):

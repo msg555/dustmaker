@@ -201,6 +201,8 @@ def read_segment(reader, map, xoffset, yoffset, config):
                      type, vars, rotation, layer,
                      faceX == 0, faceY == 0, visible == 1), id)
 
+  reader.set_index(start_index + segment_size * 8)
+
 def read_region(reader, map, config):
   region_len = reader.read(32)
   uncompressed_len = reader.read(32)
