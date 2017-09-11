@@ -32,7 +32,7 @@ def _write_6bit_str(writer, str):
     else:
       writer.write(6, 63)
 
-def _write_var_type(writer, var):
+def _write_var_type(writer, var, allow_continuation = True):
   type = var.type
   value = var.value
   if type == VarType.NULL: return
@@ -42,9 +42,18 @@ def _write_var_type(writer, var):
   if type == VarType.FLOAT: return _write_float(writer, 32, 32, value)
 
   if type == VarType.STRING:
-    writer.write(16, len(value))
-    for ch in value:
-      writer.write(8, ord(ch))
+    width = (1 << 16) - 1
+    for i in range(0, 1 + len(value) // width):
+      if i > 0:
+        if not allow_continuation:
+          break
+        writer.write(4, type)
+        _write_6bit_str(writer, "ctn")
+      vs = value[i * width : (i + 1) * width]
+
+      writer.write(16, len(vs))
+      for ch in vs:
+        writer.write(8, ord(ch))
     return
 
   if type == VarType.VEC2:
@@ -55,10 +64,21 @@ def _write_var_type(writer, var):
   if type == VarType.ARRAY:
     atype = value[0]
     arr = value[1]
+    arrlen = len(arr)
+    width = (1 << 16) - 1
+    if atype == VarType.STRING:
+      for x in arr:
+        arrlen += len(x.value) // width
     writer.write(4, atype)
-    writer.write(16, len(arr))
+    writer.write(16, arrlen)
     for x in arr:
-      _write_var_type(writer, x)
+      if atype == VarType.STRING:
+        xs = x.value
+        for i in range(0, 1 + len(xs) // width):
+          _write_var_type(writer, Var(atype, xs[i * width : (i + 1) * width]),
+                          False)
+      else:
+        _write_var_type(writer, x)
     return
 
   if type == VarType.STRUCT:

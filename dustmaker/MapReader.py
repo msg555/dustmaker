@@ -39,7 +39,7 @@ def read_6bit_str(reader):
       chrs.append('{')
   return ''.join(chrs)
 
-def read_var_type(reader, type):
+def read_var_type(reader, type, allow_continuation = True):
   if type == VarType.NULL: return None
   if type == VarType.BOOL: return reader.read(1) == 1
   if type == VarType.UINT: return reader.read(32)
@@ -48,9 +48,20 @@ def read_var_type(reader, type):
 
   if type == VarType.STRING:
     chrs = []
-    slen = reader.read(16)
-    for i in range(slen):
-      chrs.append(chr(reader.read(8)))
+    continuation = True
+    while continuation:
+      slen = reader.read(16)
+      for i in range(slen):
+        chrs.append(chr(reader.read(8)))
+
+      continuation = False
+      if allow_continuation and slen == (1 << 16) - 1:
+        # Skip past header data that's there to allow legacy clients to parse
+        # somewhat successfully.
+        continuation = True
+        reader.read(4)
+        read_6bit_str(reader)
+
     return ''.join(chrs)
 
   if type == VarType.VEC2:
@@ -62,8 +73,15 @@ def read_var_type(reader, type):
     atype = VarType(reader.read(4))
     alen = reader.read(16)
     val = []
+    continuation = False
     for i in range(alen):
-      val.append(Var(atype, read_var_type(reader, atype)))
+      elem = read_var_type(reader, atype, False)
+      if continuation:
+        val[-1].value += elem
+      else:
+        val.append(Var(atype, elem))
+      continuation = atype == VarType.STRING and len(elem) == (1 << 16) - 1
+
     return (atype, val)
 
   if type == VarType.STRUCT:

@@ -272,6 +272,16 @@ class Tile:
       self.dust_data[ind] |= val << shft
     return (TileSpriteSet(result & 0x7), (result & 0x8) != 0)
 
+  def edge_filth_angles(self, side, angle1 = None, angle2 = None):
+    ind = 2 + side * 2
+    ang1 = int(self.dust_data[ind])
+    ang2 = int(self.dust_data[ind + 1])
+    if not angle1 is None:
+      self.dust_data[ind] = angle1
+    if not angle2 is None:
+      self.dust_data[ind + 1] = angle2
+    return (ang1, ang2)
+
   def edge_filth_cap(self, side, val = None):
     shft = 2 * side
     result = (self.dust_data[10] >> shft) & 0x3
