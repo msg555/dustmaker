@@ -16,7 +16,7 @@ Installation
 
 or
 
-    pip install dustmaker
+    python3 -m pip install dustmaker
 
 Creating A Map From Scratch
 ---------------------------
