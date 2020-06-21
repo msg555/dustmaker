@@ -8,5 +8,3 @@ from .Tile import Tile, TileShape, TileSpriteSet, TileSide
 
 from .MapReader import read_map, read_stat_file, read_config_file, read_fog_file
 from .MapWriter import write_map, write_stat_file, write_config_file, write_fog_file
-
-__version__ = "0.3.0"
