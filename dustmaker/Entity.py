@@ -301,8 +301,8 @@ class AIController(Entity):
     for i in range(nods.count()):
       pos = nods.get(i)
       nods.set(i,
-          (mat[0][2] + pos[0] * mat[0][0] + pos[1] * mat[0][1],
-           mat[1][2] + pos[0] * mat[1][0] + pos[1] * mat[1][1]))
+          (48 * mat[0][2] + pos[0] * mat[0][0] + pos[1] * mat[0][1],
+           48 * mat[1][2] + pos[0] * mat[1][0] + pos[1] * mat[1][1]))
     super(AIController, self).transform(mat)
 
 known_types.append(AIController)
