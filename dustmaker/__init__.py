@@ -1,10 +1,11 @@
-from .Map import Map
-from .Entity import *
-from .Prop import Prop
-from .Var import Var, VarType
-from .LevelType import LevelType
-from .MapException import MapException, MapParseException
-from .Tile import Tile, TileShape, TileSpriteSet, TileSide
+""" Dustmaker public exports """
+from .level_map import Map
+from .entity import *
+from .prop import Prop
+from .variable import Variable, VariableType
+from .enums import *
+from .map_exception import MapException, MapParseException
+from .tile import Tile, TileShape, TileSpriteSet, TileSide
 
-from .MapReader import read_map, read_stat_file, read_config_file, read_fog_file
-from .MapWriter import write_map, write_stat_file, write_config_file, write_fog_file
+from .map_reader import read_map, DFReader
+from .map_writer import write_map, DFWriter
