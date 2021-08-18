@@ -15,4 +15,4 @@ typecheck:
 lint: format-check pylint typecheck
 
 test:
-	$(PYTHON) -m unittest tests/
+	$(PYTHON) -m unittest discover -v tests/
