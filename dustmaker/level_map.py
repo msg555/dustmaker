@@ -77,7 +77,7 @@ class Map:
         """
         self._min_id = 100
         self.tiles: Dict[Tuple[int, int, int], Tile] = {}
-        self.props: Dict[int, Tuple[int, int, int, Prop]] = {}
+        self.props: Dict[int, Tuple[int, float, float, Prop]] = {}
         self.variables: Dict[str, Variable] = {}
 
         self.parent = parent
@@ -112,7 +112,7 @@ class Map:
     )
     dustmod_version = bind_prop("dustmod_version", VariableString, b"")
 
-    def start_position(self, player: int = 1) -> "PlayerPosition":
+    def start_position(self, player: int = 1) -> "_PlayerPosition":
         """Returns a player position class that can access/modify the position
         through 'x' and 'y' properties"""
         return _PlayerPosition(self.variables, player)
@@ -222,16 +222,24 @@ class Map:
         self.tiles = {
             (
                 layer,
-                round(mat[0][2] / 48.0)
-                + x * mat[0][0]
-                + y * mat[0][1]
-                + min(0, mat[0][0])
-                + min(0, mat[0][1]),
-                round(mat[1][2] / 48.0)
-                + x * mat[1][0]
-                + y * mat[1][1]
-                + min(0, mat[1][0])
-                + min(0, mat[1][1]),
+                int(
+                    round(
+                        mat[0][2] / 48.0
+                        + x * mat[0][0]
+                        + y * mat[0][1]
+                        + min(0, mat[0][0])
+                        + min(0, mat[0][1])
+                    )
+                ),
+                int(
+                    round(
+                        mat[1][2] / 48.0
+                        + x * mat[1][0]
+                        + y * mat[1][1]
+                        + min(0, mat[1][0])
+                        + min(0, mat[1][1])
+                    )
+                ),
             ): tile
             for ((layer, x, y), tile) in self.tiles.items()
         }
@@ -278,7 +286,7 @@ class Map:
         """Flips the map vertically."""
         self.transform([[1, 0, 0], [0, -1, 0], [0, 0, 1]])
 
-    def rotate(self, times: Optional[int] = 1) -> None:
+    def rotate(self, times: int = 1) -> None:
         """Rotates the map 90 degrees `times` times.
 
         times - The number of 90 degree rotations to perform.  This can be negative.
@@ -295,8 +303,8 @@ class Map:
         self.transform([[factor, 0, 0], [0, factor, 0], [0, 0, 1]])
         self.tiles = {
             (layer, x + dx, y + dy): ntile
-            for dx, dy, ntile in tile.upscale(factor)
             for (layer, x, y), tile in self.tiles.items()
+            for dx, dy, ntile in tile.upscale(factor)
         }
 
     def calculate_edge_bits(self) -> None:
@@ -311,6 +319,6 @@ class Map:
                         tk not in self.tiles
                         or TILE_MAXIMAL_BITS[self.tiles[tk].shape][side ^ 1] != 15
                     ):
-                        tile.edge_bits(side, TILE_MAXIMAL_BITS[tile.shape][side])
+                        tile.edge_bits[side] = TILE_MAXIMAL_BITS[tile.shape][side]
                 elif TILE_MAXIMAL_BITS[tile.shape][side]:
-                    tile.edge_bits(side, TILE_MAXIMAL_BITS[tile.shape][side])
+                    tile.edge_bits[side] = TILE_MAXIMAL_BITS[tile.shape][side]

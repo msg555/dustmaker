@@ -44,7 +44,7 @@ def bind_prop(
         if not isinstance(var, prop_type):
             raise ValueError("unexpected property type")
         if objtype:
-            return var
+            return cast(T, var)
         return cast(T, var.value)
 
     def _set(self, val: T) -> None:
@@ -217,7 +217,11 @@ class FogTrigger(Trigger):
             raise IndexError("invalid fog index")
 
         colours = self.variables.setdefault("fog_trigger", VariableArray(VariableUInt))
+        if not isinstance(colours, VariableArray):
+            raise ValueError("fog_trigger variable not an array")
         pers = self.variables.setdefault("fog_per", VariableArray(VariableFloat))
+        if not isinstance(pers, VariableArray):
+            raise ValueError("fog_per variable not an array")
 
         while index >= len(colours):
             colours.append(0x111118)

@@ -23,7 +23,8 @@ class VariableType(IntEnum):
 class Variable(metaclass=abc.ABCMeta):
     """Represents a variable attached to a Dustforce object."""
 
-    TYPES = {}
+    TYPES: Dict[VariableType, Type["Variable"]] = {}
+    vtype = VariableType.NULL
 
     def __init__(self, value: Any) -> None:
         self.value = value
@@ -32,12 +33,13 @@ class Variable(metaclass=abc.ABCMeta):
     @classmethod
     def __init_subclass__(cls):
         """record type id to type class mapping"""
-        vtype = getattr(cls, "vtype", None)
-        if vtype is not None:
-            Variable.TYPES[vtype] = cls
+        if cls.vtype is not VariableType.NULL:
+            Variable.TYPES[cls.vtype] = cls
 
-    def __eq__(self, oth: "Variable") -> bool:
+    def __eq__(self, oth) -> bool:
         # pylint: disable=no-member
+        if not isinstance(oth, Variable):
+            return False
         return self.vtype == oth.vtype and self.value == oth.value
 
     def __hash__(self):
@@ -59,19 +61,6 @@ class Variable(metaclass=abc.ABCMeta):
     def __repr__(self) -> str:
         # pylint: disable=no-member
         return "Variable(%s, %s)" % (repr(self.vtype), repr(self.value))
-
-
-class VariableNull(Variable):
-    """Null variable"""
-
-    vtype = VariableType.NULL
-
-    def __init__(self) -> None:
-        super().__init__(None)
-
-    def _assert_types(self) -> None:
-        """Ensure value is None"""
-        assert self.value is None
 
 
 class VariableBool(Variable):

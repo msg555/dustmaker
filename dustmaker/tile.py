@@ -73,7 +73,9 @@ def _pack_tile_data(
     return bytes(tile_data)
 
 
-def _unpack_tile_data(tile_data: bytes) -> Tuple[List[int], List[int], int, int, int]:
+def _unpack_tile_data(
+    tile_data: bytes,
+) -> Tuple[List[int], List[int], TileSpriteSet, int, int]:
     """Unpack tile data into the representation used by dustmaker."""
     assert len(tile_data) == 12
 
@@ -211,7 +213,7 @@ class Tile:
         self.sprite_palette = 0
         self.filth_sprite_sets = [TileSpriteSet.NONE_0 for _ in range(4)]
         self.filth_spikes = [False for _ in range(4)]
-        self.filth_angles = [0 for _ in range(4)]
+        self.filth_angles = [(0, 0) for _ in range(4)]
         self.filth_caps = [0 for _ in range(4)]
 
         if tile_data is not None:
@@ -297,20 +299,20 @@ class Tile:
             if self.shape == TileShape.FULL:
                 pass
             elif self.shape <= TileShape.SMALL_8:
-                self.shape = 1 + ((self.shape - TileShape.BIG_1) ^ 8) % 16
+                self.shape = TileShape(1 + ((self.shape - TileShape.BIG_1) ^ 8) % 16)
             else:
-                self.shape = 17 + ((self.shape - TileShape.HALF_A) ^ 3)
+                self.shape = TileShape(17 + ((self.shape - TileShape.HALF_A) ^ 3))
         angle = int(round(math.atan2(mat[1][1], mat[1][0]) / math.pi * 2))
         angle = (-angle + 1) & 0x3
 
         if self.shape == TileShape.FULL:
             pass
         elif self.shape <= TileShape.SMALL_4:
-            self.shape = 1 + ((self.shape - TileShape.BIG_1) + angle * 2) % 8
+            self.shape = TileShape(1 + ((self.shape - TileShape.BIG_1) + angle * 2) % 8)
         elif self.shape <= TileShape.SMALL_8:
-            self.shape = 9 + ((self.shape - TileShape.BIG_5) - angle * 2) % 8
+            self.shape = TileShape(9 + ((self.shape - TileShape.BIG_5) - angle * 2) % 8)
         else:
-            self.shape = 17 + ((self.shape - TileShape.HALF_A) + angle) % 4
+            self.shape = TileShape(17 + ((self.shape - TileShape.HALF_A) + angle) % 4)
 
         edge_data = []
         for side in SHAPE_ORDERED_SIDES[oshape]:
@@ -458,11 +460,11 @@ class Tile:
             self.transform([[-1, 0, 0], [0, 1, 0], [0, 0, 1]])
             oresult = self.upscale(factor)
             rmat = [[-1, 0, factor - 1], [0, 1, 0], [0, 0, 1]]
-            self.transform(rmat)
+            self.transform(rmat)  # type: ignore
 
             result = []
             for (dx, dy, tile) in oresult:
-                tile.transform(rmat)
+                tile.transform(rmat)  # type: ignore
                 result.append(
                     (
                         dx * rmat[0][0] + dy * rmat[0][1] + rmat[0][2],
@@ -474,11 +476,11 @@ class Tile:
             self.transform([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
             oresult = self.upscale(factor)
             rmat = [[0, 1, 0], [-1, 0, factor - 1], [0, 0, 1]]
-            self.transform(rmat)
+            self.transform(rmat)  # type: ignore
 
             result = []
             for (dx, dy, tile) in oresult:
-                tile.transform(rmat)
+                tile.transform(rmat)  # type: ignore
                 result.append(
                     (
                         dx * rmat[0][0] + dy * rmat[0][1] + rmat[0][2],

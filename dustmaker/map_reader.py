@@ -4,7 +4,7 @@ files.
 """
 import functools
 import io
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import zlib
 
 from .bitio import BitIOReader
@@ -20,7 +20,6 @@ from .variable import (
     VariableBool,
     VariableFloat,
     VariableInt,
-    VariableNull,
     VariableString,
     VariableStruct,
     VariableType,
@@ -66,7 +65,7 @@ class DFReader(BitIOReader):
     def read_var_type(self, vtype: VariableType, allow_continuation=True) -> Variable:
         """Read a variable of a given type"""
         if vtype == VariableType.NULL:
-            return VariableNull()
+            raise MapParseException("unexpected null variable")
         if vtype == VariableType.BOOL:
             return VariableBool(self.read(1) == 1)
         if vtype == VariableType.UINT:
@@ -101,7 +100,7 @@ class DFReader(BitIOReader):
         if vtype == VariableType.ARRAY:
             atype = VariableType(self.read(4))
             alen = self.read(16)
-            val = []
+            val: List[Variable] = []
             continuation = False
             for _ in range(alen):
                 elem = self.read_var_type(atype, False)
@@ -120,7 +119,7 @@ class DFReader(BitIOReader):
 
         raise MapParseException("unknown var type")
 
-    def read_var(self) -> Tuple[str, Variable]:
+    def read_var(self) -> Optional[Tuple[str, Variable]]:
         """Read a named variable"""
         vtype = VariableType(self.read(4))
         if vtype == VariableType.NULL:
@@ -131,7 +130,7 @@ class DFReader(BitIOReader):
 
     def read_var_map(self) -> Dict[str, Variable]:
         """Read a variable mapping"""
-        result = {}
+        result: Dict[str, Variable] = {}
         while True:
             var = self.read_var()
             if var is None:
@@ -166,22 +165,22 @@ class DFReader(BitIOReader):
                 tiles = self.read(10)
 
                 for _ in range(tiles):
-                    xpos = self.read(5)
-                    ypos = self.read(5)
+                    txpos = self.read(5)
+                    typos = self.read(5)
                     shape = self.read(8)
                     data = self.read_bytes(12)
                     if shape & 0x80:
-                        mmap.tiles[(layer, xoffset + xpos, yoffset + ypos)] = Tile(
+                        mmap.tiles[(layer, xoffset + txpos, yoffset + typos)] = Tile(
                             TileShape(shape & 0x1F), tile_data=data
                         )
 
         if flags & 2:
             dusts = self.read(10)
             for _ in range(dusts):
-                xpos = self.read(5)
-                ypos = self.read(5)
+                txpos = self.read(5)
+                typos = self.read(5)
                 data = self.read_bytes(12)
-                tile = mmap.tiles.get((19, xoffset + xpos, yoffset + ypos))
+                tile = mmap.tiles.get((19, xoffset + txpos, yoffset + typos))
                 if tile is not None:
                     tile._set_dust_data(data)
 
@@ -195,7 +194,7 @@ class DFReader(BitIOReader):
                 layer = self.read(8)
                 layer_sub = self.read(8)
 
-                scale = 1
+                scale = 1.0
                 if version > 6 or config.get("scaled_props"):
                     x_sgn = self.read(1)
                     x_int = self.read(27)
@@ -204,8 +203,8 @@ class DFReader(BitIOReader):
                     y_int = self.read(27)
                     y_scale = (self.read(4) & 0x7) ^ 0x4
 
-                    xpos = (-1 if x_sgn != 0 else 1) * x_int
-                    ypos = (-1 if y_sgn != 0 else 1) * y_int
+                    xpos = (-1.0 if x_sgn != 0 else 1.0) * x_int
+                    ypos = (-1.0 if y_sgn != 0 else 1.0) * y_int
 
                     scale_lg = x_scale * 7 + y_scale
                     scale = pow(50.0, (scale_lg - 32.0) / 24.0)
@@ -285,7 +284,6 @@ class DFReader(BitIOReader):
             for etype, xpos, ypos, eargs, id_num in entities:
                 if has_extended_names and etype == "entity":
                     etype = self.read_6bit_str()
-                    print("READ EXTENDED NAME", xoffset, yoffset, etype)
                 mmap.add_entity(
                     xpos,
                     ypos,
@@ -299,10 +297,8 @@ class DFReader(BitIOReader):
         """Read a region into the passed map"""
         region_len = self.read(32)
         uncompressed_len = self.read(32)  # pylint: disable=unused-variable
-        print("rsizes", region_len, uncompressed_len)
         offx = self.read(16, True)
         offy = self.read(16, True)
-        print(offx, offy)
         version = self.read(16)  # pylint: disable=unused-variable
         segments = self.read(16)
         has_backdrop = self.read(8) != 0
@@ -315,6 +311,8 @@ class DFReader(BitIOReader):
             sub_reader.read_segment(mmap, offx * 256, offy * 256, config)
 
         if has_backdrop:
+            if mmap.backdrop is None:
+                raise ValueError("no backdrop present in map")
             sub_reader.align()
             sub_reader.read_segment(mmap.backdrop, offx * 16, offy * 16, config)
 
@@ -356,10 +354,7 @@ class DFReader(BitIOReader):
 
         filesize = self.read(32)  # pylint: disable=unused-variable
         num_regions = self.read(32)
-        print(version, filesize, num_regions)
         meta = self.read_metadata()  # pylint: disable=unused-variable
-
-        print(version, filesize, num_regions, meta)
 
         sshot_data = b""
         if version > 43:

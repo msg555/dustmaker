@@ -18,7 +18,6 @@ from .variable import (
     VariableBool,
     VariableFloat,
     VariableInt,
-    VariableNull,
     VariableString,
     VariableStruct,
     VariableType,
@@ -102,8 +101,8 @@ def compute_region_map(mmap: Map) -> RegionMap:
     regions as is used in the underlying binary representation.
     """
     rmap = RegionMap()
-    for (layer, x, y), tile in mmap.tiles.items():
-        rmap.get_segment(x, y).tiles[layer].append((x & 0xF, y & 0xF, tile))
+    for (layer, tx, ty), tile in mmap.tiles.items():
+        rmap.get_segment(tx, ty).tiles[layer].append((tx & 0xF, ty & 0xF, tile))
 
     for id_num, (x, y, entity) in mmap.entities.items():
         rmap.get_segment(int(x / 48), int(y / 48)).entities.append(
@@ -161,8 +160,6 @@ class DFWriter(BitIOWriter):
     def write_var_type(self, var: Variable, allow_continuation=True) -> None:
         """Write a variable to the output stream"""
         value = var.value
-        if isinstance(var, VariableNull):
-            return
         if isinstance(var, VariableBool):
             self.write(1, 1 if value else 0)
             return
@@ -179,7 +176,7 @@ class DFWriter(BitIOWriter):
                 if i > 0:
                     if not allow_continuation:
                         break
-                    self.write(4, type)
+                    self.write(4, var.vtype)
                     self.write_6bit_str("ctn")
                 vs = value[i * width : (i + 1) * width]
 
@@ -243,7 +240,6 @@ class DFWriter(BitIOWriter):
 
         (dust_filth, enemy_filth, tile_surface, dustblock_filth) = (0, 0, 0, 0)
 
-        # print("write segment", seg_x, seg_y, segment)
         dusts = []
         if tiles:
             flags |= 1
@@ -367,7 +363,6 @@ class DFWriter(BitIOWriter):
 
     def write_region(self, x: int, y: int, region: MapRegion) -> None:
         """Writes a map region to the output stream"""
-        print("write region", x, y)
         segments_io = io.BytesIO()
         with DFWriter(segments_io) as segments_writer:
             for coord, segment in sorted(region.segment_map.items()):
@@ -378,7 +373,6 @@ class DFWriter(BitIOWriter):
 
         compressed_data = zlib.compress(uncompressed_data)
 
-        print("sizes", len(compressed_data), len(uncompressed_data))
         self.write(32, 17 + len(compressed_data))
         self.write(32, len(uncompressed_data))
         self.write(16, x)
@@ -424,7 +418,7 @@ class DFWriter(BitIOWriter):
         assert self.aligned()
 
         start_index = self.bit_tell()
-        header_size = 160 + self.METADATA_BIT_SIZE + len(mmap.sshot)
+        header_size = 160 + self.METADATA_BIT_SIZE + len(mmap.sshot) * 8
 
         self.bit_seek(start_index + header_size)
 
@@ -452,7 +446,6 @@ class DFWriter(BitIOWriter):
         # writing over the var map.
         self.bit_seek(region_dir_index + 32, allow_unaligned=True)
         for region_index in region_indexes[1:]:
-            print("REGION INDEX", region_index)
             self.write(32, region_index)
 
         # Got back to start and rewrite header.

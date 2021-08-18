@@ -3,5 +3,16 @@ PYTHON := python3
 format:
 	$(PYTHON) -m black .
 
-lint:
-	$(PYTHON) -m pylint dustmaker
+format-check:
+	$(PYTHON) -m black --check .
+
+pylint:
+	$(PYTHON) -m pylint dustmaker tests
+
+typecheck:
+	$(PYTHON) -m mypy dustmaker
+
+lint: format-check pylint typecheck
+
+test:
+	$(PYTHON) -m unittest tests/

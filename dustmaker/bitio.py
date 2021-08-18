@@ -2,7 +2,7 @@
 Module defining the core binary reader for Dustforce binary formats.
 """
 import itertools
-from typing import BinaryIO
+from typing import BinaryIO, Iterable
 
 
 class BitIO:
@@ -166,7 +166,7 @@ class BitIOWriter(BitIO):
 
         # Figure out what bytes need to be written to the stream
         full_bytes = (bits - self._bits_left) // 8
-        byte_gen = (
+        byte_gen: Iterable[int] = (
             (val >> (i * 8 + self._bits_left)) & 0xFF for i in range(full_bytes)
         )
         if self._bits_left != 0:
