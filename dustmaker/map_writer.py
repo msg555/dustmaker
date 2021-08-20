@@ -11,7 +11,7 @@ import zlib
 from .bitio import BitIOWriter
 from .level_map import Map
 from .map_exception import MapParseException
-from .tile import TileSide, TileSpriteSet
+from .tile import TileSpriteSet
 from .variable import (
     Variable,
     VariableArray,
@@ -245,31 +245,31 @@ class DFWriter(BitIOWriter):
             flags |= 1
 
             self.write(8, len(tiles))
-            for (layer, tilelayer) in tiles:
+            for layer, tilelayer in tiles:
                 self.write(8, layer)
                 self.write(10, len(tilelayer))
 
-                for (x, y, tile) in sorted(tilelayer, key=lambda x: (x[1], x[0])):
+                for x, y, tile in sorted(tilelayer, key=lambda x: (x[1], x[0])):
                     if layer == 19 and tile.has_filth():
                         dusts.append((x, y, tile))
                     if layer == 19:
                         if tile.is_dustblock():
                             dustblock_filth += 1
-                        for side in TileSide:
-                            spiked = tile.filth_spikes[side]
-                            if spiked:
+                        for edge in tile.edge_data:
+                            if edge.filth_spike:
                                 continue
 
-                            if tile.filth_sprite_sets[side] != TileSpriteSet.NONE_0:
+                            if edge.filth_sprite_set != TileSpriteSet.NONE_0:
                                 dust_filth += 1
 
-                            if (tile.edge_bits[side] & 0x3) == 0x3:
+                            if edge.solid and edge.visible:
                                 tile_surface += 1
 
                     self.write(5, x)
                     self.write(5, y)
-                    self.write(8, tile.shape | 0x80)
-                    self.write_bytes(tile._get_tile_data())
+                    self.write(5, tile.shape)
+                    self.write(3, tile.tile_flags)
+                    self.write_bytes(tile._pack_tile_data())
 
         if dusts:
             flags |= 2
@@ -278,7 +278,7 @@ class DFWriter(BitIOWriter):
             for (x, y, tile) in dusts:
                 self.write(5, x)
                 self.write(5, y)
-                self.write_bytes(tile._get_dust_data())
+                self.write_bytes(tile._pack_dust_data())
 
         if segment.props:
             flags |= 8
@@ -428,7 +428,7 @@ class DFWriter(BitIOWriter):
         # Skip over the region directory for now
         rmap = compute_region_map(mmap)
         region_dir_index = self.bit_tell()
-        region_data_index = (region_dir_index + 32 * len(rmap.region_map) + 7) & ~0x3
+        region_data_index = (region_dir_index + 32 * len(rmap.region_map) + 7) & ~0x7
         self.bit_seek(region_data_index)
         region_indexes = []
 
@@ -466,10 +466,9 @@ class DFWriter(BitIOWriter):
 
 def write_map(mmap: Map) -> bytes:
     """Convenience method to write a map file and return the written bytes."""
-    data = io.BytesIO()
-    with DFWriter(data) as writer:
+    with DFWriter(io.BytesIO()) as writer:
         writer.write_map(mmap)
-        return data.getvalue()
+        return writer.data.getvalue()
 
 
 # pylint: disable=fixme

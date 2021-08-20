@@ -1,6 +1,7 @@
 """
 Module defining the core binary reader for Dustforce binary formats.
 """
+import io
 import itertools
 from typing import BinaryIO, Iterable
 
@@ -15,7 +16,9 @@ class BitIO:
     '128's place of the last byte.
     """
 
-    def __init__(self, data: BinaryIO) -> None:
+    __slots__ = ("data", "_tell", "_bits", "_bits_left", "_noclose")
+
+    def __init__(self, data: BinaryIO, *, noclose: bool = False) -> None:
         """Create a new BitIO using data as the backing stream.
 
         data - A binary input stream. Should support read/write/seek if those
@@ -25,14 +28,21 @@ class BitIO:
         self._tell = 0
         self._bits = 0
         self._bits_left = 0
+        self._noclose = noclose
         try:
             self._tell = data.tell()
         except (AttributeError, IOError):
             pass
 
+    def release(self) -> None:
+        """Prevents closing this bitio BitIO object from closing the backing
+        stream."""
+        self._noclose = True
+
     def close(self) -> None:
         """Flush any pending bits and close the underlying stream."""
-        self.data.close()
+        if not self._noclose:
+            self.data.close()
 
     def aligned(self) -> bool:
         """Returns True if the stream is aligned at a byte boundary."""
@@ -76,13 +86,18 @@ class BitIOReader(BitIO):
     Bit reader wrapper for a data stream.
     """
 
+    def __init__(self, data: BinaryIO, *, noclose: bool = False) -> None:
+        if not isinstance(data, io.BufferedIOBase):
+            data = io.BufferedReader(data)  # type: ignore
+        super().__init__(data, noclose=noclose)
+
     def read(self, bits, signed=False) -> int:
         """Reads the next `bits` bits into an integer in little endian order.
 
         bits -- The number of bits to read.
         signed -- Indicates if the MSB is a sign bit.
         """
-        bytes_needed = (bits - self._bits_left + 7) // 8
+        bytes_needed = (bits - self._bits_left + 7) >> 3
         if self._bits == -1:
             # We did a seek mid-byte and need to read the lead byte still.
             bytes_needed += 1
@@ -103,13 +118,11 @@ class BitIOReader(BitIO):
             new_bytes = new_bytes[1:]
 
         # Calculate the result with maybe some extra data from the last byte.
-        result = self._bits + sum(
-            byt << (i * 8 + self._bits_left) for i, byt in enumerate(new_bytes)
-        )
+        result = self._bits + (int.from_bytes(new_bytes, "little") << self._bits_left)
 
         # Save the extra data from the last byte
         self._bits = result >> bits
-        self._bits_left = (self._bits_left - bits) % 8
+        self._bits_left = (self._bits_left - bits) & 7
 
         # Remove the extra data
         result = result & (1 << bits) - 1
@@ -127,7 +140,7 @@ class BitIOReader(BitIO):
         """
         if self._bits_left == 0:
             data = self.data.read(num)
-            self._tell += len(data) * 8
+            self._tell += len(data) << 3
             return data
         return bytes(self.read(8) for _ in range(num))
 
@@ -136,6 +149,11 @@ class BitIOWriter(BitIO):
     """
     Bit writer wrapper for a data stream.
     """
+
+    def __init__(self, data: BinaryIO, *, noclose: bool = False) -> None:
+        if not isinstance(data, io.BufferedIOBase):
+            data = io.BufferedWriter(data)  # type: ignore
+        super().__init__(data, noclose=noclose)
 
     def write(self, bits: int, val: int) -> None:
         """Writes `val`, an integer of `bits` bits in size, to the stream.
@@ -165,21 +183,20 @@ class BitIOWriter(BitIO):
             return
 
         # Figure out what bytes need to be written to the stream
-        full_bytes = (bits - self._bits_left) // 8
-        byte_gen: Iterable[int] = (
-            (val >> (i * 8 + self._bits_left)) & 0xFF for i in range(full_bytes)
-        )
+        full_bytes = (bits - self._bits_left) >> 3
+        val_as_bytes = (val >> self._bits_left).to_bytes(full_bytes + 1, "little")
+        byte_gen: Iterable[int] = itertools.islice(val_as_bytes, full_bytes)
         if self._bits_left != 0:
             byte_gen = itertools.chain((self._bits,), byte_gen)
         self.data.write(bytes(byte_gen))
 
         # Fix up our state for leftover bits
-        used_bits = full_bytes * 8 + self._bits_left
+        used_bits = (full_bytes << 3) + self._bits_left
         if used_bits == bits:
             self._bits = 0
             self._bits_left = 0
         else:
-            self._bits = val >> used_bits
+            self._bits = val_as_bytes[-1]
             self._bits_left = 8 - (bits - used_bits)
 
         self._tell += bits
@@ -188,7 +205,7 @@ class BitIOWriter(BitIO):
         """Writes the bytes in buf to the stream"""
         if self._bits_left == 0:
             self.data.write(buf)
-            self._tell += len(buf) * 8
+            self._tell += len(buf) << 3
             return
         for byt in buf:
             self.write(8, byt)
@@ -219,7 +236,7 @@ class BitIOWriter(BitIO):
         """Seeks to the desired position in the stream relative the start.
         This also triggers a flush.
         """
-        if not allow_unaligned and pos % 8 != 0:
+        if not allow_unaligned and (pos & 7) != 0:
             raise RuntimeError(
                 "cannot perform unaligned seek, set allow_unaligned=True if you really want this"
             )

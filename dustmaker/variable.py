@@ -202,7 +202,7 @@ class VariableArray(Variable):
         return self.value[1].__getitem__(key).value
 
     def __setitem__(self, key, val):
-        return self.value[1].__setitem__(self.value[0](val))
+        return self.value[1].__setitem__(key, self.value[0](val))
 
     def __contains__(self, item):
         return self.value[1].__contains__(item)

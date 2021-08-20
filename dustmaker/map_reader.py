@@ -167,12 +167,14 @@ class DFReader(BitIOReader):
                 for _ in range(tiles):
                     txpos = self.read(5)
                     typos = self.read(5)
-                    shape = self.read(8)
+                    shape = self.read(5)
+                    tile_flags = self.read(3)
                     data = self.read_bytes(12)
-                    if shape & 0x80:
-                        mmap.tiles[(layer, xoffset + txpos, yoffset + typos)] = Tile(
-                            TileShape(shape & 0x1F), tile_data=data
-                        )
+                    mmap.tiles[(layer, xoffset + txpos, yoffset + typos)] = Tile(
+                        TileShape(shape & 0x1F),
+                        tile_flags=tile_flags,
+                        tile_data=data,
+                    )
 
         if flags & 2:
             dusts = self.read(10)
@@ -182,7 +184,7 @@ class DFReader(BitIOReader):
                 data = self.read_bytes(12)
                 tile = mmap.tiles.get((19, xoffset + txpos, yoffset + typos))
                 if tile is not None:
-                    tile._set_dust_data(data)
+                    tile._unpack_dust_data(data)
 
         if flags & 8:
             props = self.read(16)
@@ -220,7 +222,9 @@ class DFReader(BitIOReader):
                 prop_index = self.read(12)
                 palette = self.read(8)
 
-                mmap.props[id_num] = (
+                # Default DF behavior is to overwrite repeated props
+                mmap.props.pop(id_num, None)
+                mmap.add_prop(
                     layer,
                     xpos,
                     ypos,
@@ -235,6 +239,7 @@ class DFReader(BitIOReader):
                         prop_index,
                         palette,
                     ),
+                    id_num=id_num,
                 )
 
         if flags & 4:
@@ -380,7 +385,7 @@ class DFReader(BitIOReader):
 
 def read_map(data: bytes) -> Map:
     """Convenience method to read in a map from bytes directly"""
-    with DFReader(io.BytesIO(data)) as reader:
+    with DFReader(io.BytesIO(data), noclose=True) as reader:
         return reader.read_map()
 
 

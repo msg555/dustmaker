@@ -8,7 +8,7 @@ from .entity import bind_prop, Entity
 from .enums import LevelType
 from .map_exception import MapException
 from .prop import Prop
-from .tile import Tile, TileSide, TILE_MAXIMAL_BITS
+from .tile import Tile
 from .variable import Variable, VariableBool, VariableInt, VariableString
 
 T = TypeVar("T")
@@ -27,7 +27,7 @@ class _LateBoundDescriptor:
         return getattr(obj, self.attrname).__get__(obj, objtype)
 
     def __set__(self, obj, value):
-        return getattr(obj, self.attrname).__get__(obj, value)
+        return getattr(obj, self.attrname).__set__(obj, value)
 
     def __delete__(self, obj):
         return getattr(obj, self.attrname).__delete__(obj)
@@ -117,6 +117,28 @@ class Map:
         through 'x' and 'y' properties"""
         return _PlayerPosition(self.variables, player)
 
+    def add_prop(
+        self, layer: int, x: float, y: float, prop: Prop, id_num: Optional[int] = None
+    ) -> int:
+        """Adds a new prop to the map and returns its id.
+
+        x - The x position in tile units of the prop.
+        y - The y position in tile units of the prop.
+        prop - The Prop object to add to the map.
+        id_num - The prop identifier.  If set to None the identifier will be
+             allocated for you.
+
+        Raises a MapException if the given id is already in use.
+        """
+        if id_num is None:
+            id_num = self._next_id()
+        else:
+            self._note_id(id_num)
+        if id_num in self.props:
+            raise MapException("map already has prop id")
+        self.props[id_num] = (layer, x, y, prop)
+        return id_num
+
     def add_entity(
         self, x: float, y: float, entity: Entity, id_num: Optional[int] = None
     ) -> int:
@@ -138,28 +160,6 @@ class Map:
         if id_num in self.entities:
             raise MapException("map already has id")
         self.entities[id_num] = (x, y, entity)
-        return id_num
-
-    def add_prop(
-        self, layer: int, x: float, y: float, prop: Prop, id_num: Optional[int] = None
-    ) -> int:
-        """Adds a new prop to the map and returns its id.
-
-        x - The x position in tile units of the prop.
-        y - The y position in tile units of the prop.
-        prop - The Prop object to add to the map.
-        id_num - The prop identifier.  If set to None the identifier will be
-             allocated for you.
-
-        Raises a MapException if the given id is already in use.
-        """
-        if id_num is None:
-            id_num = self._next_id()
-        else:
-            self._note_id(id_num)
-        if id_num in self.props:
-            raise MapException("map already has prop id")
-        self.props[id_num] = (layer, x, y, prop)
         return id_num
 
     def translate(self, x: float, y: float) -> None:
@@ -241,39 +241,39 @@ class Map:
                     )
                 ),
             ): tile
-            for ((layer, x, y), tile) in self.tiles.items()
+            for (layer, x, y), tile in self.tiles.items()
         }
         self.props = {
-            id: (
+            id_num: (
                 layer,
                 mat[0][2] + x * mat[0][0] + y * mat[0][1],
                 mat[1][2] + x * mat[1][0] + y * mat[1][1],
                 prop,
             )
-            for (id, (layer, x, y, prop)) in self.props.items()
+            for id_num, (layer, x, y, prop) in self.props.items()
         }
         for tile in self.tiles.values():
             tile.transform(mat)
-        for (_, _, _, prop) in self.props.values():
+        for _, _, _, prop in self.props.values():
             prop.transform(mat)
 
         for player in range(1, 5):
             pos = self.start_position(player)
             pos.x, pos.y = (
-                mat[0][2] + pos.x * mat[0][0] + pos.y * mat[0][1],
-                mat[1][2] + pos.x * mat[1][0] + pos.y * mat[1][1],
+                int(round(mat[0][2] + pos.x * mat[0][0] + pos.y * mat[0][1])),
+                int(round(mat[1][2] + pos.x * mat[1][0] + pos.y * mat[1][1])),
             )
 
-            self.entities = {
-                id: (
-                    mat[0][2] + x * mat[0][0] + y * mat[0][1],
-                    mat[1][2] + x * mat[1][0] + y * mat[1][1],
-                    entity,
-                )
-                for (id, (x, y, entity)) in self.entities.items()
-            }
-            for (x, y, entity) in self.entities.values():
-                entity.transform(mat)
+        self.entities = {
+            id_num: (
+                mat[0][2] + x * mat[0][0] + y * mat[0][1],
+                mat[1][2] + x * mat[1][0] + y * mat[1][1],
+                entity,
+            )
+            for id_num, (x, y, entity) in self.entities.items()
+        }
+        for _, _, entity in self.entities.values():
+            entity.transform(mat)
 
         if self.backdrop is not None:
             self.backdrop.transform(mat)
@@ -298,27 +298,27 @@ class Map:
             [[cs[times], -sn[times], 0], [sn[times], cs[times], 0], [0, 0, 1]]
         )
 
-    def upscale(self, factor: int) -> None:
-        """Increase the size of the map along each axis by `factor`."""
-        self.transform([[factor, 0, 0], [0, factor, 0], [0, 0, 1]])
+    def upscale(self, factor: int, *, mat: Optional[TxMatrix] = None) -> None:
+        """Increase the size of the map along each axis by `factor`.
+
+        mat - Optionally apply an additional transform. The transform will be
+              applied logically after the upscale.
+        """
+        if mat is None:
+            self.transform([[factor, 0, 0], [0, factor, 0], [0, 0, 1]])
+        else:
+            self.transform(
+                [
+                    [
+                        val * (factor if col < 2 else 1)
+                        for col, val in enumerate(mat_row)
+                    ]
+                    for mat_row in mat
+                ]
+            )
+
         self.tiles = {
             (layer, x + dx, y + dy): ntile
             for (layer, x, y), tile in self.tiles.items()
             for dx, dy, ntile in tile.upscale(factor)
         }
-
-    def calculate_edge_bits(self) -> None:
-        """Calculate the proper collision bits on all tiles."""
-        dx = (0, 0, -1, 1)
-        dy = (-1, 1, 0, 0)
-        for (layer, x, y), tile in self.tiles.items():
-            for side in TileSide:
-                if TILE_MAXIMAL_BITS[tile.shape][side] == 15:
-                    tk = (layer, x + dx[side], y + dy[side])
-                    if (
-                        tk not in self.tiles
-                        or TILE_MAXIMAL_BITS[self.tiles[tk].shape][side ^ 1] != 15
-                    ):
-                        tile.edge_bits[side] = TILE_MAXIMAL_BITS[tile.shape][side]
-                elif TILE_MAXIMAL_BITS[tile.shape][side]:
-                    tile.edge_bits[side] = TILE_MAXIMAL_BITS[tile.shape][side]

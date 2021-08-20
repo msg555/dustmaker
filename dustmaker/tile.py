@@ -2,158 +2,27 @@
 Module defining the tile respresentation in dustmaker.
 """
 import copy
+from dataclasses import dataclass
 import math
-from typing import Iterable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from .enums import TileShape, TileSide, TileSpriteSet
 
 TxMatrix = List[List[float]]
 
-"""
-       Tile byte layout notes
-        0x0 0,4 top
-            1,5 bottom
-            2,6 left
-            3,7 right
-        0x1 0..1 top
-            2..3 bottom
-            4..5 left
-            6..7 right
-        0x2 top angles
-        0x3
-        0x4 bottom angles
-        0x5
-        0x6 left angles
-        0x7
-        0x8 right angles
-        0x9
-        0xA 0..3 sprite set
-            4..7 sprite palette
-        0xB      sprite tile
 
-        1 -> Mansion
-        2 -> Forest
-        3 -> City
-        4 -> Lab
-        5 -> Virtual
-"""
+@dataclass
+class TileEdgeData:
+    """Container class for data stored on each tile edge."""
 
-
-def _pack_tile_data(
-    edge_bits: List[int],
-    edge_angle: List[int],
-    sprite_set: int,
-    sprite_tile: int,
-    sprite_palette: int,
-) -> bytes:
-    """Pack the dustmaker respresentation back into the binary representation"""
-    assert len(edge_bits) == 4
-    assert len(edge_angle) == 4
-
-    tile_data = [0 for _ in range(12)]
-    for side, val in enumerate(edge_bits):
-        assert 0 <= val <= 0xF
-        offsets = (0 + side, 4 + side, 8 + 2 * side, 9 + 2 * side)
-        for i, off in enumerate(offsets):
-            if val & 1 << i:
-                tile_data[off >> 3] |= 1 << (off & 7)
-
-    for side, angle in enumerate(edge_angle):
-        assert 0 <= angle <= 0xFFFF
-        tile_data[2 + side * 2] = angle & 0xFF
-        tile_data[3 + side * 2] = angle >> 8
-
-    assert 0 <= sprite_set <= 0xF
-    assert 0 <= sprite_tile <= 0xFF
-    assert 0 <= sprite_palette <= 0xF
-
-    tile_data[10] = sprite_set + (sprite_palette << 4)
-    tile_data[11] = sprite_tile
-
-    return bytes(tile_data)
-
-
-def _unpack_tile_data(
-    tile_data: bytes,
-) -> Tuple[List[int], List[int], TileSpriteSet, int, int]:
-    """Unpack tile data into the representation used by dustmaker."""
-    assert len(tile_data) == 12
-
-    # Extract the edge bits
-    edge_bits = []
-    for side in range(4):
-        val = 0
-        offsets = (0 + side, 4 + side, 8 + 2 * side, 9 + 2 * side)
-        for i, off in enumerate(offsets):
-            if tile_data[off >> 3] & (1 << (off & 7)):
-                val |= 1 << i
-        edge_bits.append(val)
-
-    edge_angles = [
-        tile_data[2 + side * 2] + (tile_data[3 + side * 2] << 8) for side in range(4)
-    ]
-    sprite_set = TileSpriteSet(tile_data[10] & 0xF)
-    sprite_tile = tile_data[11]
-    sprite_palette = tile_data[10] >> 4
-
-    return edge_bits, edge_angles, sprite_set, sprite_tile, sprite_palette
-
-
-def _pack_dust_data(
-    filth_sprite_sets: List[TileSpriteSet],
-    filth_spikes: List[bool],
-    filth_angles: List[Tuple[int, int]],
-    filth_caps: List[int],
-) -> bytes:
-    """Pack the dustmaker respresentation back into the binary representation"""
-    assert len(filth_sprite_sets) == 4
-    assert len(filth_spikes) == 4
-    assert len(filth_angles) == 4
-    assert len(filth_caps) == 4
-
-    dust_data = [0 for _ in range(12)]
-
-    for side in range(4):
-        sset, spike, angle, cap = (
-            filth_sprite_sets[side],
-            filth_spikes[side],
-            filth_angles[side],
-            filth_caps[side],
-        )
-        assert 0 <= sset <= 0xF
-        assert isinstance(spike, bool)
-        assert 0 <= angle[0] <= 0xFF
-        assert 0 <= angle[1] <= 0xFF
-        assert 0 <= cap <= 0x3
-
-        off = 4 * side
-        dust_data[off >> 3] |= (sset | (0x8 if spike else 0)) << (off & 0x7)
-        dust_data[2 + side * 2], dust_data[3 + side * 2] = angle
-        dust_data[10] |= cap << (2 * side)
-
-    return bytes(dust_data)
-
-
-def _unpack_dust_data(
-    dust_data: bytes,
-) -> Tuple[List[TileSpriteSet], List[bool], List[Tuple[int, int]], List[int]]:
-    """Unpack dust data into the representation used by dustmaker."""
-    assert len(dust_data) == 12
-
-    filth_sprite_sets = []
-    filth_spikes = []
-    filth_caps = []
-    for side in range(4):
-        off = 4 * side
-        val = dust_data[off >> 3] >> (off & 0x7)
-        filth_sprite_sets.append(TileSpriteSet(val & 0x7))
-        filth_spikes.append(bool(val & 0x8))
-        filth_caps.append((dust_data[10] >> (2 * side)) & 0x3)
-
-    filth_angles = [
-        (dust_data[2 + side * 2], dust_data[3 + side * 2]) for side in range(4)
-    ]
-    return filth_sprite_sets, filth_spikes, filth_angles, filth_caps
+    solid: bool = False
+    visible: bool = False
+    caps: Tuple[bool, bool] = (False, False)
+    angles: Tuple[int, int] = (0, 0)
+    filth_sprite_set: TileSpriteSet = TileSpriteSet.NONE_0
+    filth_spike: bool = False
+    filth_caps: Tuple[bool, bool] = (False, False)
+    filth_angles: Tuple[int, int] = (0, 0)
 
 
 class Tile:
@@ -166,13 +35,22 @@ class Tile:
 
       shape: TileShape - The shape of this particular tile.
 
-      edge_bits: List[4 bit int] - These are the collision bits for each side
-          of the tile. Use 0 for no collision and 0xF for normal collisions. Any
-          other settings have undocumented behavior.
+      tile_flags: 3 bit int
+        Bit 1 - "solid slope flag" (probably ignored)
+        Bit 2 - "visible flag" (probably ignored)
+        Bit 3 - solid flag
 
-      edge_angle: List[16 bit int] - The angle of the side of each edge. This
-          controls how edges are drawn and is ignored if the edge bits are not
-          set for the given side.
+      edge_bits: List[4 bit int] - These are the collision bits for each side
+          of the tile. From engine source:
+            Bit 0 - solid flag
+            Bit 1 - visible flag
+            Bit 2,3 - "2 bits for ends of each edge". These have been normalized
+                      to be in clockwise order relative the center of the tile.
+                      (i.e. for the top edge this is left, right bits)
+
+      edge_angles: List[Tuple[signed byte, signed byte]] - The angle of the side of each edge.
+          The edges for a side are listed in clockwise order relative the
+          center of the tile.
 
       sprite_set: TileSpriteSet - The sprite set this tile comes from. (e.g.
           forest, mansion)
@@ -201,63 +79,22 @@ class Tile:
         self,
         shape: TileShape,
         *,
+        tile_flags: int = 0x4,
         tile_data: Optional[bytes] = None,
-        dust_data: Optional[bytes] = None
+        dust_data: Optional[bytes] = None,
     ) -> None:
         """Initialize a vanilla virtual tile of the given shape."""
         self.shape = shape
-        self.edge_bits = [0 for _ in range(4)]
-        self.edge_angles = [0 for _ in range(4)]
+        self.tile_flags = tile_flags
+        self.edge_data = [TileEdgeData() for _ in TileSide]
         self.sprite_set = TileSpriteSet.TUTORIAL
         self.sprite_tile = 1
         self.sprite_palette = 0
-        self.filth_sprite_sets = [TileSpriteSet.NONE_0 for _ in range(4)]
-        self.filth_spikes = [False for _ in range(4)]
-        self.filth_angles = [(0, 0) for _ in range(4)]
-        self.filth_caps = [0 for _ in range(4)]
 
         if tile_data is not None:
-            self._set_tile_data(tile_data)
+            self._unpack_tile_data(tile_data)
         if dust_data is not None:
-            self._set_dust_data(dust_data)
-
-    def _set_tile_data(self, tile_data: bytes) -> None:
-        """Helper method to unpack the packed tile data"""
-        (
-            self.edge_bits,
-            self.edge_angle,
-            self.sprite_set,
-            self.sprite_tile,
-            self.sprite_palette,
-        ) = _unpack_tile_data(tile_data)
-
-    def _get_tile_data(self) -> bytes:
-        """Helper method to pack the tile data"""
-        return _pack_tile_data(
-            self.edge_bits,
-            self.edge_angle,
-            self.sprite_set,
-            self.sprite_tile,
-            self.sprite_palette,
-        )
-
-    def _set_dust_data(self, dust_data: bytes) -> None:
-        """Helper method to unpack the packed dust data"""
-        (
-            self.filth_sprite_sets,
-            self.filth_spikes,
-            self.filth_angles,
-            self.filth_caps,
-        ) = _unpack_dust_data(dust_data)
-
-    def _get_dust_data(self) -> bytes:
-        """Helper method to pack the dust data"""
-        return _pack_dust_data(
-            self.filth_sprite_sets,
-            self.filth_spikes,
-            self.filth_angles,
-            self.filth_caps,
-        )
+            self._unpack_dust_data(dust_data)
 
     @property
     def sprite_path(self) -> str:
@@ -273,12 +110,12 @@ class Tile:
 
     def has_filth(self) -> bool:
         """Returns true if there is filth attached to any edges of this tile"""
-        return any(st != TileSpriteSet.NONE_0 for st in self.filth_sprite_sets)
+        return any(
+            edge.filth_sprite_set != TileSpriteSet.NONE_0 for edge in self.edge_data
+        )
 
     def is_dustblock(self) -> bool:
-        """
-        Returns true if the tile is a dustblock.
-        """
+        """Returns true if the tile is a dustblock."""
         return {
             TileSpriteSet.MANSION: 21,
             TileSpriteSet.FOREST: 13,
@@ -296,13 +133,29 @@ class Tile:
         oshape = self.shape
         flipped = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0] < 0
         if flipped:
+            # horizontally flip
             if self.shape == TileShape.FULL:
-                pass
+                self.edge_data[TileSide.LEFT], self.edge_data[TileSide.RIGHT] = (
+                    self.edge_data[TileSide.RIGHT],
+                    self.edge_data[TileSide.LEFT],
+                )
             elif self.shape <= TileShape.SMALL_8:
                 self.shape = TileShape(1 + ((self.shape - TileShape.BIG_1) ^ 8) % 16)
             else:
                 self.shape = TileShape(17 + ((self.shape - TileShape.HALF_A) ^ 3))
-        angle = int(round(math.atan2(mat[1][1], mat[1][0]) / math.pi * 2))
+
+            # flips swap clockwise to counterclockwise, reverse directed data
+            for edge in self.edge_data:
+                edge.caps = edge.caps[::-1]
+                edge.filth_caps = edge.filth_caps[::-1]
+                edge.angles = (-edge.angles[1], -edge.angles[0])
+                edge.filth_angles = (-edge.filth_angles[1], -edge.filth_angles[0])
+
+        angle = int(
+            round(
+                math.atan2(mat[1][1], (-1 if flipped else 1) * mat[1][0]) / math.pi * 2
+            )
+        )
         angle = (-angle + 1) & 0x3
 
         if self.shape == TileShape.FULL:
@@ -314,66 +167,15 @@ class Tile:
         else:
             self.shape = TileShape(17 + ((self.shape - TileShape.HALF_A) + angle) % 4)
 
-        edge_data = []
-        for side in SHAPE_ORDERED_SIDES[oshape]:
-            edge_data.append(
-                (
-                    self.edge_bits[side],
-                    self.edge_angle[side],
-                    self.filth_sprite_sets[side],
-                    self.filth_spikes[side],
-                    self.filth_angles[side],
-                    self.filth_caps[side],
-                )
-            )
-        for side in TileSide:
-            (
-                self.edge_bits[side],
-                self.edge_angle[side],
-                self.filth_sprite_sets[side],
-                self.filth_spikes[side],
-                self.filth_angles[side],
-                self.filth_caps[side],
-            ) = (
-                0,
-                0,
-                TileSpriteSet.NONE_0,
-                False,
-                (0, 0),
-                0,
-            )
-        for (i, side) in enumerate(SHAPE_ORDERED_SIDES[self.shape]):
+        og_edge_data = [
+            copy.deepcopy(self.edge_data[side]) for side in SHAPE_ORDERED_SIDES[oshape]
+        ]
+        self.edge_data = [TileEdgeData() for _ in TileSide]
+
+        for i, side in enumerate(SHAPE_ORDERED_SIDES[self.shape]):
             if self.shape == TileShape.FULL:
                 i = i + angle & 3
-                if flipped:
-                    i = -i & 3
-            (
-                self.edge_bits[side],
-                self.edge_angle[side],
-                self.filth_sprite_sets[side],
-                self.filth_spikes[side],
-                self.filth_angles[side],
-                self.filth_caps[side],
-            ) = edge_data[i]
-
-    def _copy_sides(self, tile: "Tile", sides: Iterable[TileSide]) -> None:
-        """Copy some of the edge bits from another tile"""
-        for side in sides:
-            (
-                self.edge_bits[side],
-                self.edge_angle[side],
-                self.filth_sprite_sets[side],
-                self.filth_spikes[side],
-                self.filth_angles[side],
-                self.filth_caps[side],
-            ) = (
-                tile.edge_bits[side],
-                tile.edge_angle[side],
-                tile.filth_sprite_sets[side],
-                tile.filth_spikes[side],
-                tile.filth_angles[side],
-                tile.filth_caps[side],
-            )
+            self.edge_data[side] = og_edge_data[i]
 
     def upscale(self, factor: int) -> List[Tuple[int, int, "Tile"]]:
         """
@@ -386,8 +188,6 @@ class Tile:
         base_tile.sprite_set = self.sprite_set
         base_tile.sprite_tile = self.sprite_tile
         base_tile.sprite_palette = self.sprite_palette
-        for side in TileSide:
-            base_tile.edge_bits[side] = 0
 
         if self.shape == TileShape.FULL:
             for dx in range(factor):
@@ -402,68 +202,78 @@ class Tile:
                     if dy + 1 == factor:
                         sides.append(TileSide.BOTTOM)
                     tile = copy.deepcopy(base_tile)
-                    tile._copy_sides(self, sides)
+                    for side in sides:
+                        tile.edge_data[side] = copy.deepcopy(self.edge_data[side])
                     result.append((dx, dy, tile))
 
         elif self.shape == TileShape.BIG_1:
             for dx in range(factor):
                 for dy in range(dx // 2, factor):
+                    shape = TileShape.FULL
                     sides = []
                     if dy == dx // 2:
                         sides.append(TileSide.TOP)
-                        base_tile.shape = (
+                        shape = (
                             TileShape.SMALL_1 if (dx + factor) % 2 else TileShape.BIG_1
                         )
-                    else:
-                        base_tile.shape = TileShape.FULL
                     if dx == 0:
                         sides.append(TileSide.LEFT)
                     if dy + 1 == factor:
                         sides.append(TileSide.BOTTOM)
+
                     tile = copy.deepcopy(base_tile)
-                    tile._copy_sides(self, sides)
+                    tile.shape = shape
+                    for side in sides:
+                        tile.edge_data[side] = copy.deepcopy(self.edge_data[side])
                     result.append((dx, dy, tile))
+
         elif self.shape == TileShape.SMALL_1:
             for dx in range(factor):
                 for dy in range((factor + dx) // 2, factor):
+                    shape = TileShape.FULL
                     sides = []
                     if dy == (factor + dx) // 2:
                         sides.append(TileSide.TOP)
-                        base_tile.shape = (
+                        shape = (
                             TileShape.SMALL_1 if (dx + factor) % 2 else TileShape.BIG_1
                         )
-                    else:
-                        base_tile.shape = TileShape.FULL
                     if dy + 1 == factor:
                         sides.append(TileSide.BOTTOM)
+
                     tile = copy.deepcopy(base_tile)
-                    tile._copy_sides(self, sides)
+                    tile.shape = shape
+                    for side in sides:
+                        tile.edge_data[side] = copy.deepcopy(self.edge_data[side])
                     result.append((dx, dy, tile))
+
         elif self.shape == TileShape.HALF_A:
             for dx in range(factor):
                 for dy in range(dx, factor):
+                    shape = TileShape.FULL
                     sides = []
                     if dx == dy:
-                        sides.append(TileSide.TOP)
                         # pylint: disable=redefined-variable-type
-                        base_tile.shape = TileShape.HALF_A
-                    else:
-                        base_tile.shape = TileShape.FULL
+                        shape = TileShape.HALF_A
+                        sides.append(TileSide.TOP)
                     if dx == 0:
                         sides.append(TileSide.LEFT)
                     if dy + 1 == factor:
                         sides.append(TileSide.BOTTOM)
+
                     tile = copy.deepcopy(base_tile)
-                    tile._copy_sides(self, sides)
+                    tile.shape = shape
+                    for side in sides:
+                        tile.edge_data[side] = copy.deepcopy(self.edge_data[side])
                     result.append((dx, dy, tile))
-        elif self.shape == TileShape.BIG_5 or self.shape == TileShape.SMALL_5:
-            self.transform([[-1, 0, 0], [0, 1, 0], [0, 0, 1]])
-            oresult = self.upscale(factor)
+
+        elif self.shape in (TileShape.SMALL_5, TileShape.BIG_5):
+            ntile = copy.deepcopy(self)
+            ntile.transform([[-1, 0, 0], [0, 1, 0], [0, 0, 1]])
+            oresult = ntile.upscale(factor)
             rmat = [[-1, 0, factor - 1], [0, 1, 0], [0, 0, 1]]
-            self.transform(rmat)  # type: ignore
 
             result = []
-            for (dx, dy, tile) in oresult:
+            for dx, dy, tile in oresult:
                 tile.transform(rmat)  # type: ignore
                 result.append(
                     (
@@ -473,13 +283,13 @@ class Tile:
                     )
                 )
         else:
-            self.transform([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-            oresult = self.upscale(factor)
+            ntile = copy.deepcopy(self)
+            ntile.transform([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+            oresult = ntile.upscale(factor)
             rmat = [[0, 1, 0], [-1, 0, factor - 1], [0, 0, 1]]
-            self.transform(rmat)  # type: ignore
 
             result = []
-            for (dx, dy, tile) in oresult:
+            for dx, dy, tile in oresult:
                 tile.transform(rmat)  # type: ignore
                 result.append(
                     (
@@ -490,160 +300,149 @@ class Tile:
                 )
         return result
 
+    def _pack_tile_data(self) -> bytes:
+        """Pack the dustmaker respresentation back into the binary representation"""
+        tile_data = [0 for _ in range(12)]
+        for side, edge in enumerate(self.edge_data):
+            vals = [edge.solid, edge.visible, *edge.caps]
+            offsets = [0 + side, 4 + side, 8 + 2 * side, 9 + 2 * side]
+
+            if side in (TileSide.LEFT, TileSide.BOTTOM):
+                # Need to swap the edge bit order to match IO order
+                offsets[2], offsets[3] = offsets[3], offsets[2]
+
+            for val, off in zip(vals, offsets):
+                if val:
+                    tile_data[off >> 3] |= 1 << (off & 7)
+
+            assert -0x80 <= edge.angles[0] <= 0x7F and -0x80 <= edge.angles[1] <= 0x7F
+            v0, v1 = edge.angles
+            if side in (TileSide.LEFT, TileSide.BOTTOM):
+                v0, v1 = -v1, -v0
+            tile_data[2 + side * 2] = v0 & 0xFF
+            tile_data[3 + side * 2] = v1 & 0xFF
+
+        assert 0 <= self.sprite_set <= 0xF
+        assert 0 <= self.sprite_tile <= 0xFF
+        assert 0 <= self.sprite_palette <= 0xF
+
+        tile_data[10] = self.sprite_set + (self.sprite_palette << 4)
+        tile_data[11] = self.sprite_tile
+
+        return bytes(tile_data)
+
+    def _unpack_tile_data(self, tile_data: bytes) -> None:
+        """Unpack tile data into the representation used by dustmaker."""
+        assert len(tile_data) == 12
+
+        # Extract the edge bits
+        for side, edge in enumerate(self.edge_data):
+
+            def test_offset(off: int) -> bool:
+                return bool(tile_data[off >> 3] & (1 << (off & 7)))
+
+            edge.solid = test_offset(0 + side)
+            edge.visible = test_offset(4 + side)
+            edge.caps = (test_offset(8 + 2 * side), test_offset(9 + 2 * side))
+            if side in (TileSide.LEFT, TileSide.BOTTOM):
+                edge.caps = (edge.caps[1], edge.caps[0])
+
+            v0, v1 = tile_data[2 + side * 2], tile_data[3 + side * 2]
+            if v0 >= 0x80:
+                v0 -= 0x100
+            if v1 >= 0x80:
+                v1 -= 0x100
+            if side in (TileSide.LEFT, TileSide.BOTTOM):
+                v0, v1 = -v1, -v0
+            edge.angles = (v0, v1)
+
+        self.sprite_set = TileSpriteSet(tile_data[10] & 0xF)
+        self.sprite_tile = tile_data[11]
+        self.sprite_palette = tile_data[10] >> 4
+
+    def _pack_dust_data(self) -> bytes:
+        """Pack the dustmaker respresentation back into the binary representation"""
+        dust_data = [0 for _ in range(12)]
+
+        for side, edge in enumerate(self.edge_data):
+            sset, spike, caps, angles = (
+                edge.filth_sprite_set,
+                edge.filth_spike,
+                edge.filth_caps,
+                edge.filth_angles,
+            )
+            assert 0 <= sset <= 0xF
+            assert -0x80 <= angles[0] <= 0x7F
+            assert -0x80 <= angles[1] <= 0x7F
+
+            # Normalize for Dustforce binary format
+            if side in (TileSide.LEFT, TileSide.BOTTOM):
+                caps = caps[::-1]
+                angles = angles[::-1]
+
+            off = 4 * side
+            dust_data[off >> 3] |= (sset | (0x8 if spike else 0)) << (off & 0x7)
+            dust_data[2 + side * 2] = angles[0] & 0xFF
+            dust_data[3 + side * 2] = angles[0] & 0xFF
+            if caps[0]:
+                dust_data[10] |= 1 << (2 * side)
+            if caps[1]:
+                dust_data[10] |= 2 << (2 * side)
+
+        return bytes(dust_data)
+
+    def _unpack_dust_data(self, dust_data: bytes) -> None:
+        """Unpack dust data into the representation used by dustmaker."""
+        assert len(dust_data) == 12
+
+        for side, edge in enumerate(self.edge_data):
+            off = 4 * side
+            val = dust_data[off >> 3] >> (off & 0x7)
+            edge.filth_sprite_set = TileSpriteSet(val & 0x7)
+            edge.filth_spike = bool(val & 0x8)
+            edge.filth_caps = (
+                bool((dust_data[10] >> (2 * side)) & 0x1),
+                bool((dust_data[10] >> (2 * side)) & 0x2),
+            )
+
+            v0, v1 = dust_data[2 + side * 2], dust_data[3 + side * 2]
+            if v0 >= 0x80:
+                v0 -= 0x100
+            if v1 >= 0x80:
+                v1 -= 0x100
+            edge.filth_angles = (v0, v1)
+
+            # Normalize for Dustforce binary format
+            if side in (TileSide.LEFT, TileSide.BOTTOM):
+                edge.filth_caps = edge.filth_caps[::-1]
+                edge.filth_angles = edge.filth_angles[::-1]
+
 
 # Full - Clockwise from top
 # Small/Big/Half - Clockwise from hyp. (ccw from mirrored)
-SHAPE_ORDERED_SIDES = (
-    (0, 2, 1, 3),
-    (0, 1, 2),
-    (0, 1),
-    (3, 2, 0),
-    (3, 2),
-    (1, 0, 3),
-    (1, 0),
-    (2, 3, 1),
-    (2, 3),
-    (0, 1, 3),
-    (0, 1),
-    (2, 3, 0),
-    (2, 3),
-    (1, 0, 2),
-    (1, 0),
-    (3, 2, 1),
-    (3, 2),
-    (0, 1, 2),
-    (1, 2, 0),
-    (1, 0, 3),
-    (0, 3, 1),
-)
-
-
-# Give the maximal edge bits of each tile shape
-TILE_MAXIMAL_BITS = (
-    (
-        15,
-        15,
-        15,
-        15,
-    ),  # TileShape.FULL:
-    (
-        7,
-        15,
-        15,
-        0,
-    ),  # TileShape.BIG_1:
-    (
-        11,
-        15,
-        0,
-        0,
-    ),  # TileShape.SMALL_1:
-    (
-        15,
-        0,
-        15,
-        7,
-    ),  # TileShape.BIG_2:
-    (
-        0,
-        0,
-        15,
-        11,
-    ),  # TileShape.SMALL_2:
-    (
-        15,
-        11,
-        0,
-        15,
-    ),  # TileShape.BIG_3:
-    (
-        15,
-        7,
-        0,
-        0,
-    ),  # TileShape.SMALL_3:
-    (
-        0,
-        15,
-        11,
-        15,
-    ),  # TileShape.BIG_4:
-    (
-        0,
-        0,
-        7,
-        15,
-    ),  # TileShape.SMALL_4:
-    (
-        11,
-        15,
-        0,
-        15,
-    ),  # TileShape.BIG_5:
-    (
-        7,
-        15,
-        0,
-        0,
-    ),  # TileShape.SMALL_5:
-    (
-        15,
-        0,
-        7,
-        15,
-    ),  # TileShape.BIG_6:
-    (
-        0,
-        0,
-        11,
-        15,
-    ),  # TileShape.SMALL_6:
-    (
-        15,
-        7,
-        15,
-        0,
-    ),  # TileShape.BIG_7:
-    (
-        15,
-        11,
-        0,
-        0,
-    ),  # TileShape.SMALL_7:
-    (
-        0,
-        15,
-        15,
-        11,
-    ),  # TileShape.BIG_8:
-    (
-        0,
-        0,
-        15,
-        7,
-    ),  # TileShape.SMALL_8:
-    (
-        15,
-        15,
-        15,
-        0,
-    ),  # TileShape.HALF_A:
-    (
-        15,
-        15,
-        15,
-        0,
-    ),  # TileShape.HALF_B:
-    (
-        15,
-        15,
-        0,
-        15,
-    ),  # TileShape.HALF_C:
-    (
-        15,
-        15,
-        0,
-        15,
-    ),  # TileShape.HALF_D:
+SHAPE_ORDERED_SIDES = tuple(
+    tuple(TileSide(x) for x in y)
+    for y in (
+        (0, 2, 1, 3),
+        (0, 1, 2),
+        (0, 1),
+        (3, 2, 0),
+        (3, 2),
+        (1, 0, 3),
+        (1, 0),
+        (2, 3, 1),
+        (2, 3),
+        (0, 1, 3),
+        (0, 1),
+        (2, 3, 0),
+        (2, 3),
+        (1, 0, 2),
+        (1, 0),
+        (3, 2, 1),
+        (3, 2),
+        (0, 1, 2),
+        (1, 2, 0),
+        (1, 0, 3),
+        (0, 3, 1),
+    )
 )

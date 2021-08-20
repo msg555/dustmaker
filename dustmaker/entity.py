@@ -346,9 +346,10 @@ class CameraNode(Entity):
 
     def transform(self, mat: TxMatrix) -> None:
         """Transform the camera zoom and width"""
+        super().transform(mat)
         scale = math.sqrt(abs(mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]))
-        self.zoom(self.zoom() * scale)
-        self.width(self.width() * scale)
+        self.zoom = int(round(self.zoom * scale))
+        self.width = int(round(self.width * scale))
 
     node_type = bind_prop(
         "node_type",
@@ -404,7 +405,19 @@ class RedKeyDoor(Entity):
     keys_needed = bind_prop("key_needed", VariableInt, 1)
 
 
-class Enemy(Entity):
+class EntityHittable(Entity):
+    """Base class for all 'hittable' types"""
+
+    scale = bind_prop("dm_scale", VariableFloat, 1.0)
+
+    def transform(self, mat: TxMatrix) -> None:
+        """Adjust the entity scale"""
+        super().transform(mat)
+        scale = math.sqrt(abs(mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]))
+        self.scale = self.scale * scale
+
+
+class Enemy(EntityHittable):
     """Base class for all enemy types"""
 
     FILTH = 1
@@ -656,55 +669,59 @@ class EnemyDoor(Enemy):
     FILTH = 0
 
 
-class Apple(Entity):
+class Apple(EntityHittable):
     """Apple entity class"""
 
     TYPE_IDENTIFIER = "hittable_apple"
 
 
-class Dustman(Entity):
+class DustCharacter(EntityHittable):
+    """Normal playable dust character entity types"""
+
+
+class Dustman(DustCharacter):
     """Dustman entity class"""
 
     TYPE_IDENTIFIER = "dust_man"
 
 
-class Dustgirl(Entity):
+class Dustgirl(DustCharacter):
     """Dustgirl entity classs"""
 
     TYPE_IDENTIFIER = "dust_girl"
 
 
-class Dustkid(Entity):
+class Dustkid(DustCharacter):
     """Dustkid entity class"""
 
     TYPE_IDENTIFIER = "dust_kid"
 
 
-class Dustworth(Entity):
+class Dustworth(DustCharacter):
     """Dustworth entity class"""
 
     TYPE_IDENTIFIER = "dust_worth"
 
 
-class Dustwraith(Entity):
+class Dustwraith(DustCharacter):
     """Dustwraith entity class"""
 
     TYPE_IDENTIFIER = "dust_wraith"
 
 
-class Leafsprite(Entity):
+class Leafsprite(DustCharacter):
     """Leaf sprite entity class"""
 
     TYPE_IDENTIFIER = "leaf_sprite"
 
 
-class Trashking(Entity):
+class Trashking(DustCharacter):
     """Trash king entity class"""
 
     TYPE_IDENTIFIER = "trash_king"
 
 
-class Slimeboss(Entity):
+class Slimeboss(DustCharacter):
     """Slime boss entity class"""
 
     TYPE_IDENTIFIER = "slime_boss"
