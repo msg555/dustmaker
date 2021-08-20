@@ -34,7 +34,7 @@ class Prop:
         self.prop_index = prop_index
         self.palette = palette
 
-    def transform(self, mat) -> None:
+    def transform(self, mat: TxMatrix) -> None:
         """
         Performs the requested transformation on the prop's position/scaling.
         """

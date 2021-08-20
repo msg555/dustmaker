@@ -91,7 +91,7 @@ class BitIOReader(BitIO):
             data = io.BufferedReader(data)  # type: ignore
         super().__init__(data, noclose=noclose)
 
-    def read(self, bits, signed=False) -> int:
+    def read(self, bits: int, signed: bool = False) -> int:
         """Reads the next `bits` bits into an integer in little endian order.
 
         bits -- The number of bits to read.
@@ -151,6 +151,12 @@ class BitIOWriter(BitIO):
     """
 
     def __init__(self, data: BinaryIO, *, noclose: bool = False) -> None:
+        """Create BitIOWriter around an existing data source.
+
+        :data: The target output stream.
+        :noclose: If set will cause `data` to not be closed when this writer
+                  closes.
+        """
         if not isinstance(data, io.BufferedIOBase):
             data = io.BufferedWriter(data)  # type: ignore
         super().__init__(data, noclose=noclose)

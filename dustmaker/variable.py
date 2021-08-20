@@ -23,8 +23,8 @@ class VariableType(IntEnum):
 class Variable(metaclass=abc.ABCMeta):
     """Represents a variable attached to a Dustforce object."""
 
-    TYPES: Dict[VariableType, Type["Variable"]] = {}
-    vtype = VariableType.NULL
+    _TYPES: Dict[VariableType, Type["Variable"]] = {}
+    _vtype = VariableType.NULL
 
     def __init__(self, value: Any) -> None:
         self.value = value
@@ -33,22 +33,24 @@ class Variable(metaclass=abc.ABCMeta):
     @classmethod
     def __init_subclass__(cls):
         """record type id to type class mapping"""
-        if cls.vtype is not VariableType.NULL:
-            Variable.TYPES[cls.vtype] = cls
+        if cls._vtype is not VariableType.NULL:
+            Variable._TYPES[cls._vtype] = cls
 
     def __eq__(self, oth) -> bool:
         # pylint: disable=no-member
         if not isinstance(oth, Variable):
             return False
-        return self.vtype == oth.vtype and self.value == oth.value
+        return self._vtype == oth._vtype and self.value == oth.value
 
     def __hash__(self):
         # pylint: disable=no-member
-        return hash((self.vtype, self.value))
+        return hash((self._vtype, self.value))
 
     def assert_types(self) -> None:
-        """Raises a ValueError if the value does not correctly match the
-        type of the Variable."""
+        """Checks if the value type matches the variable type.
+
+        :raises ValueError: value type and variable type do not agree
+        """
         try:
             self._assert_types()
         except AssertionError as e:
@@ -60,13 +62,13 @@ class Variable(metaclass=abc.ABCMeta):
 
     def __repr__(self) -> str:
         # pylint: disable=no-member
-        return "Variable(%s, %s)" % (repr(self.vtype), repr(self.value))
+        return "Variable(%s, %s)" % (repr(self._vtype), repr(self.value))
 
 
 class VariableBool(Variable):
     """Bool variable"""
 
-    vtype = VariableType.BOOL
+    _vtype = VariableType.BOOL
 
     def __init__(self, value: bool = False) -> None:
         super().__init__(value)
@@ -79,7 +81,7 @@ class VariableBool(Variable):
 class VariableInt(Variable):
     """32-bit signed int variable"""
 
-    vtype = VariableType.INT
+    _vtype = VariableType.INT
 
     def __init__(self, value: int = 0) -> None:
         super().__init__(value)
@@ -92,7 +94,7 @@ class VariableInt(Variable):
 class VariableUInt(Variable):
     """32-bit unsigned int variable"""
 
-    vtype = VariableType.UINT
+    _vtype = VariableType.UINT
 
     def __init__(self, value: int = 0) -> None:
         super().__init__(value)
@@ -105,7 +107,7 @@ class VariableUInt(Variable):
 class VariableFloat(Variable):
     """floating point variable"""
 
-    vtype = VariableType.FLOAT
+    _vtype = VariableType.FLOAT
 
     def __init__(self, value: float = 0.0) -> None:
         super().__init__(value)
@@ -118,7 +120,7 @@ class VariableFloat(Variable):
 class VariableString(Variable):
     """string (really, bytes) variable"""
 
-    vtype = VariableType.STRING
+    _vtype = VariableType.STRING
 
     def __init__(self, value: bytes = b"") -> None:
         super().__init__(value)
@@ -131,7 +133,7 @@ class VariableString(Variable):
 class VariableVec2(Variable):
     """vec2 (floating point pair) variable"""
 
-    vtype = VariableType.VEC2
+    _vtype = VariableType.VEC2
 
     def __init__(self, value: Tuple[float, float] = (0.0, 0.0)) -> None:
         super().__init__(value)
@@ -149,7 +151,7 @@ class VariableVec2(Variable):
 class VariableStruct(Variable):
     """struct variable"""
 
-    vtype = VariableType.STRUCT
+    _vtype = VariableType.STRUCT
 
     def __init__(self, value: Optional[Dict[str, Variable]] = None) -> None:
         super().__init__(dict(value or {}))
@@ -165,7 +167,7 @@ class VariableStruct(Variable):
 class VariableArray(Variable):
     """array variable"""
 
-    vtype = VariableType.ARRAY
+    _vtype = VariableType.ARRAY
 
     def __init__(
         self, element_type: Type[Variable], values: Optional[List[Variable]] = None

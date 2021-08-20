@@ -176,7 +176,7 @@ class DFWriter(BitIOWriter):
                 if i > 0:
                     if not allow_continuation:
                         break
-                    self.write(4, var.vtype)
+                    self.write(4, var._vtype)
                     self.write_6bit_str("ctn")
                 vs = value[i * width : (i + 1) * width]
 
@@ -197,7 +197,7 @@ class DFWriter(BitIOWriter):
             if atype == VariableType.STRING:
                 for x in arr:
                     arrlen += len(x.value) // width
-            self.write(4, atype.vtype)
+            self.write(4, atype._vtype)
             self.write(16, arrlen)
             for x in arr:
                 if atype == VariableType.STRING:
@@ -218,7 +218,7 @@ class DFWriter(BitIOWriter):
 
     def write_var(self, key: str, var: Variable) -> None:
         """Write a named variable to the output stream"""
-        self.write(4, var.vtype)
+        self.write(4, var._vtype)
         self.write_6bit_str(key)
         self.write_var_type(var)
 

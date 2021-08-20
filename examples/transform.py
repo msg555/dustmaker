@@ -8,6 +8,7 @@ from dustmaker import DFReader, DFWriter, LevelType
 
 
 def get_args():
+    """Read CLI arguments"""
     parser = argparse.ArgumentParser(
         description="upscales, rotates, flips, and then shifts a map (in that order)."
     )
@@ -72,6 +73,7 @@ def matmul(lhs, rhs):
 
 
 def main():
+    """Transform CLI entrypoint"""
     args = get_args()
 
     with DFReader(open(args.input_map, "rb")) as reader:

@@ -112,7 +112,7 @@ class DFReader(BitIOReader):
                     atype == VariableType.STRING and len(elem.value) == (1 << 16) - 1
                 )
 
-            return VariableArray(Variable.TYPES[atype], val)
+            return VariableArray(Variable._TYPES[atype], val)
 
         if vtype == VariableType.STRUCT:
             return VariableStruct(self.read_var_map())
