@@ -11,17 +11,7 @@ from dustmaker.cmd.common import (
     CliUtility,
 )
 from dustmaker.level import LevelType
-
-
-def matmul(lhs, rhs):
-    """Multiply two matrixes"""
-    return [
-        [
-            sum(lhs[i][k] * rhs[k][j] for k in range(len(lhs[0])))
-            for j in range(len(rhs[0]))
-        ]
-        for i in range(len(lhs))
-    ]
+from dustmaker.tile import matmul
 
 
 class Transform(CliUtility):

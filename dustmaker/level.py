@@ -366,8 +366,8 @@ class Level:
                 to perform. `times` may be negative to perform counterclockwise
                 rotations.
         """
-        cs = [1, 0, -1, 0]
-        sn = [0, 1, 0, -1]
+        cs = (1, 0, -1, 0)
+        sn = (0, 1, 0, -1)
         times %= 4
         self.transform(
             [[cs[times], -sn[times], 0], [sn[times], cs[times], 0], [0, 0, 1]]
@@ -565,7 +565,10 @@ class Level:
 
                     for dx, dy in ddirs:
                         ntile = self.tiles.get((layer, x + dx, y + dy))
-                        if ntile is None or tile.sprite_tuple() != ntile.sprite_tuple():
+                        if (
+                            ntile is None
+                            or tile.get_sprite_tuple() != ntile.get_sprite_tuple()
+                        ):
                             continue
 
                         nedge_data = ntile.edge_data[side]

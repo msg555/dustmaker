@@ -5,9 +5,29 @@ import copy
 from dataclasses import dataclass
 from enum import IntEnum
 import math
-from typing import List, Optional, Tuple
+from typing import List, Generator, Optional, Tuple
 
 TxMatrix = List[List[float]]
+
+
+def matmul(lhs: TxMatrix, rhs: TxMatrix) -> TxMatrix:
+    """Multiply two matrixes. Intended for transformation matrixes but works
+    for general matrix multiplication.
+
+    Arguments:
+        lhs (TxMatrix): left matrix to multiply
+        rhs (TxMatrix): right matrix to multiply
+
+    Returns:
+        The multiplied matrix
+    """
+    return [
+        [
+            sum(lhs[i][k] * rhs[k][j] for k in range(len(lhs[0])))
+            for j in range(len(rhs[0]))
+        ]
+        for i in range(len(lhs))
+    ]
 
 
 class TileSpriteSet(IntEnum):
@@ -183,7 +203,7 @@ class Tile:
         if dust_data is not None:
             self._unpack_dust_data(dust_data)
 
-    def sprite_tuple(self) -> Tuple[TileSpriteSet, int, int]:
+    def get_sprite_tuple(self) -> Tuple[TileSpriteSet, int, int]:
         """Convenience method for getting a tuple that describes the sprite
         of a tile for easy sprite comparisons.
 
@@ -191,7 +211,17 @@ class Tile:
             (sprite_set, sprite_tile, sprite_palette) (TileSpriteSet, int, int):
                 the sprite set, tile, and palette of this tile.
         """
-        return (self.sprite_set, self.sprite_tile, self.sprite_palette)
+        return self.sprite_set, self.sprite_tile, self.sprite_palette
+
+    def set_sprite_tuple(self, sprite_tuple: Tuple[TileSpriteSet, int, int]) -> None:
+        """Convenience method for setting sprite information in the same format
+        as :meth:`get_sprite_tuple`.
+
+        Arguments:
+            sprite_tuple (TileSpriteSet, int, int): Sprite set, tile, and palette
+                information.
+        """
+        self.sprite_set, self.sprite_tile, self.sprite_palette = sprite_tuple
 
     @property
     def sprite_path(self) -> str:
@@ -271,131 +301,141 @@ class Tile:
 
         for i, side in enumerate(SHAPE_ORDERED_SIDES[self.shape]):
             if self.shape == TileShape.FULL:
-                i = i + angle & 3
+                i = (i - angle) & 3
             self.edge_data[side] = og_edge_data[i]
 
-    def upscale(self, factor: int) -> List[Tuple[int, int, "Tile"]]:
+    def upscale(self, factor: int) -> Generator[Tuple[int, int, "Tile"], None, None]:
         """
         Upscales a tile, returning a list of (dx, dy, tile) tuples giving
         the relative position of the upscaled tiles and the new tile shape.
         """
-        result = []
+        cw_index = (0, 2, 3, 1)
 
-        base_tile = Tile(TileShape.FULL)
-        base_tile.sprite_set = self.sprite_set
-        base_tile.sprite_tile = self.sprite_tile
-        base_tile.sprite_palette = self.sprite_palette
+        def _tuple_set(data: Tuple, ind: int, value) -> Tuple:
+            return tuple((value if i == ind else x) for i, x in enumerate(data))
+
+        def _copy_side(dx: int, dy: int, tile: Tile, side: TileSide):
+            """Copies a side from self into the upscaled tile. Adjust the
+            caps if the edge does not leave the upscaled tile boundary.
+            """
+            edge_data = copy.deepcopy(self.edge_data[side])
+
+            cw_ind = cw_index[side]
+            for dr in range(2):
+                vert_a = SHAPE_VERTEXES[tile.shape][(cw_ind + 1 - dr) & 0x3]
+                vert_b = SHAPE_VERTEXES[tile.shape][(cw_ind + dr) & 0x3]
+                x = 2 * dx + vert_b[0]
+                y = 2 * dy + vert_b[1]
+                if vert_a[0] != vert_b[0] and x in (0, factor * 2):
+                    continue
+                if vert_a[1] != vert_b[1] and y in (0, factor * 2):
+                    continue
+
+                edge_data.caps = _tuple_set(edge_data.caps, dr, False)  # type: ignore
+                edge_data.angles = _tuple_set(edge_data.angles, dr, 0)  # type: ignore
+                edge_data.filth_caps = _tuple_set(edge_data.filth_caps, dr, False)  # type: ignore
+                edge_data.filth_angles = _tuple_set(edge_data.filth_angles, dr, 0)  # type: ignore
+
+            tile.edge_data[side] = edge_data
 
         if self.shape == TileShape.FULL:
             for dx in range(factor):
                 for dy in range(factor):
-                    sides = []
+                    tile = Tile(TileShape.FULL)
+                    tile.set_sprite_tuple(self.get_sprite_tuple())
+
                     if dx == 0:
-                        sides.append(TileSide.LEFT)
+                        _copy_side(dx, dy, tile, TileSide.LEFT)
                     if dx + 1 == factor:
-                        sides.append(TileSide.RIGHT)
+                        _copy_side(dx, dy, tile, TileSide.RIGHT)
                     if dy == 0:
-                        sides.append(TileSide.TOP)
+                        _copy_side(dx, dy, tile, TileSide.TOP)
                     if dy + 1 == factor:
-                        sides.append(TileSide.BOTTOM)
-                    tile = copy.deepcopy(base_tile)
-                    for side in sides:
-                        tile.edge_data[side] = copy.deepcopy(self.edge_data[side])
-                    result.append((dx, dy, tile))
+                        _copy_side(dx, dy, tile, TileSide.BOTTOM)
 
-        elif self.shape == TileShape.BIG_1:
+                    yield dx, dy, tile
+
+        elif self.shape in (TileShape.BIG_1, TileShape.SMALL_1):
             for dx in range(factor):
-                for dy in range(dx // 2, factor):
-                    shape = TileShape.FULL
-                    sides = []
-                    if dy == dx // 2:
-                        sides.append(TileSide.TOP)
-                        shape = (
-                            TileShape.SMALL_1 if (dx + factor) % 2 else TileShape.BIG_1
-                        )
+                ddx = dx + (factor if self.shape == TileShape.SMALL_1 else 0)
+                for dy in range(ddx // 2, factor):
+                    tile = Tile(TileShape.FULL)
+                    tile.set_sprite_tuple(self.get_sprite_tuple())
+
+                    if dy == ddx // 2:
+                        tile.shape = TileShape.SMALL_1 if ddx % 2 else TileShape.BIG_1
+                        _copy_side(dx, dy, tile, TileSide.TOP)
                     if dx == 0:
-                        sides.append(TileSide.LEFT)
+                        _copy_side(dx, dy, tile, TileSide.LEFT)
                     if dy + 1 == factor:
-                        sides.append(TileSide.BOTTOM)
+                        _copy_side(dx, dy, tile, TileSide.BOTTOM)
 
-                    tile = copy.deepcopy(base_tile)
-                    tile.shape = shape
-                    for side in sides:
-                        tile.edge_data[side] = copy.deepcopy(self.edge_data[side])
-                    result.append((dx, dy, tile))
-
-        elif self.shape == TileShape.SMALL_1:
-            for dx in range(factor):
-                for dy in range((factor + dx) // 2, factor):
-                    shape = TileShape.FULL
-                    sides = []
-                    if dy == (factor + dx) // 2:
-                        sides.append(TileSide.TOP)
-                        shape = (
-                            TileShape.SMALL_1 if (dx + factor) % 2 else TileShape.BIG_1
-                        )
-                    if dy + 1 == factor:
-                        sides.append(TileSide.BOTTOM)
-
-                    tile = copy.deepcopy(base_tile)
-                    tile.shape = shape
-                    for side in sides:
-                        tile.edge_data[side] = copy.deepcopy(self.edge_data[side])
-                    result.append((dx, dy, tile))
+                    yield dx, dy, tile
 
         elif self.shape == TileShape.HALF_A:
             for dx in range(factor):
                 for dy in range(dx, factor):
-                    shape = TileShape.FULL
-                    sides = []
+                    tile = Tile(TileShape.FULL)
+                    tile.set_sprite_tuple(self.get_sprite_tuple())
+
                     if dx == dy:
-                        # pylint: disable=redefined-variable-type
-                        shape = TileShape.HALF_A
-                        sides.append(TileSide.TOP)
+                        tile.shape = TileShape.HALF_A
+                        _copy_side(dx, dy, tile, TileSide.TOP)
                     if dx == 0:
-                        sides.append(TileSide.LEFT)
+                        _copy_side(dx, dy, tile, TileSide.LEFT)
                     if dy + 1 == factor:
-                        sides.append(TileSide.BOTTOM)
+                        _copy_side(dx, dy, tile, TileSide.BOTTOM)
 
-                    tile = copy.deepcopy(base_tile)
-                    tile.shape = shape
-                    for side in sides:
-                        tile.edge_data[side] = copy.deepcopy(self.edge_data[side])
-                    result.append((dx, dy, tile))
+                    yield dx, dy, tile
 
-        elif self.shape in (TileShape.SMALL_5, TileShape.BIG_5):
-            ntile = copy.deepcopy(self)
-            ntile.transform([[-1, 0, 0], [0, 1, 0], [0, 0, 1]])
-            oresult = ntile.upscale(factor)
-            rmat = [[-1, 0, factor - 1], [0, 1, 0], [0, 0, 1]]
-
-            result = []
-            for dx, dy, tile in oresult:
-                tile.transform(rmat)  # type: ignore
-                result.append(
-                    (
-                        dx * rmat[0][0] + dy * rmat[0][1] + rmat[0][2],
-                        dx * rmat[1][0] + dy * rmat[1][1] + rmat[1][2],
-                        tile,
-                    )
-                )
         else:
-            ntile = copy.deepcopy(self)
-            ntile.transform([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-            oresult = ntile.upscale(factor)
-            rmat = [[0, 1, 0], [-1, 0, factor - 1], [0, 0, 1]]
+            # Otherwise transform the tile into one of the above handled cases
+            # and transform the result back.
+            new_shape = self.shape
 
-            result = []
-            for dx, dy, tile in oresult:
-                tile.transform(rmat)  # type: ignore
-                result.append(
-                    (
-                        dx * rmat[0][0] + dy * rmat[0][1] + rmat[0][2],
-                        dx * rmat[1][0] + dy * rmat[1][1] + rmat[1][2],
-                        tile,
-                    )
+            hflip = False
+            if TileShape.BIG_5 <= new_shape <= TileShape.SMALL_8:
+                # horizontal flip
+                hflip = True
+                new_shape = TileShape(new_shape - 8)
+
+            if TileShape.BIG_1 <= new_shape <= TileShape.SMALL_4:
+                rots = (new_shape - TileShape.BIG_1) // 2
+            else:  # Half tile
+                rots = new_shape - TileShape.HALF_A
+
+            # Calculate rotation matrix and inverse
+            cs = (1, 0, -1, 0)
+            sn = (0, 1, 0, -1)
+            mat = [[cs[rots], sn[rots], 0], [-sn[rots], cs[rots], 0], [0, 0, 1]]
+            imat = [[cs[rots], -sn[rots], 0], [sn[rots], cs[rots], 0], [0, 0, 1]]
+
+            # Apply horizontal flip
+            if hflip:
+                mat[0][0] *= -1
+                mat[1][0] *= -1
+                imat[0][0] *= -1
+                imat[0][1] *= -1
+
+            # Fix up offset so transformed positions stay in upscale square.
+            for matrix in (mat, imat):
+                for row in matrix:
+                    if sum(row) < 0:
+                        row[2] += factor - 1
+
+            # Copy tile and transform it.
+            ntile = copy.deepcopy(self)
+            ntile.transform(mat)  # type: ignore
+            assert ntile.shape in (TileShape.HALF_A, TileShape.BIG_1, TileShape.SMALL_1)
+
+            # For each of the new upscaled tiles inverse the transformation.
+            for dx, dy, tile in ntile.upscale(factor):
+                tile.transform(imat)  # type: ignore
+                yield (
+                    dx * imat[0][0] + dy * imat[0][1] + imat[0][2],
+                    dx * imat[1][0] + dy * imat[1][1] + imat[1][2],
+                    tile,
                 )
-        return result
 
     def _pack_tile_data(self) -> bytes:
         """Pack the dustmaker respresentation back into the binary representation"""
@@ -480,7 +520,7 @@ class Tile:
             off = 4 * side
             dust_data[off >> 3] |= (sset | (0x8 if spike else 0)) << (off & 0x7)
             dust_data[2 + side * 2] = angles[0] & 0xFF
-            dust_data[3 + side * 2] = angles[0] & 0xFF
+            dust_data[3 + side * 2] = angles[1] & 0xFF
             if caps[0]:
                 dust_data[10] |= 1 << (2 * side)
             if caps[1]:
