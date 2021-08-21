@@ -1,16 +1,83 @@
-.. Dustmaker documentation master file, created by
-   sphinx-quickstart on Thu Aug 19 19:25:04 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+dustmaker package
+=================
 
-Dustmaker Documentation
-=====================================
+Submodules
+----------
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+level module
+----------------------
 
-.. automodule:: dustmaker
+.. automodule:: dustmaker.level
    :members:
+   :undoc-members:
+   :show-inheritance:
 
-.. autofunction:: dustmaker.read_map
+tile module
+----------------------
+
+.. automodule:: dustmaker.tile
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+variable module
+----------------------
+
+.. automodule:: dustmaker.variable
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+entity module
+----------------------
+
+.. automodule:: dustmaker.entity
+   :members:
+   :undoc-members:
+
+prop module
+----------------------
+
+.. automodule:: dustmaker.prop
+   :members:
+   :undoc-members:
+
+bitio module
+----------------------
+
+.. automodule:: dustmaker.bitio
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dfreader module
+----------------------
+
+.. automodule:: dustmaker.dfreader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dfwriter module
+----------------------
+
+.. automodule:: dustmaker.dfwriter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enums module
+----------------------
+
+.. automodule:: dustmaker.enums
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+exceptions module
+----------------------
+
+.. automodule:: dustmaker.exceptions
+   :members:
+   :undoc-members:
+   :show-inheritance:
