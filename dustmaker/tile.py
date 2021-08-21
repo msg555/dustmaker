@@ -3,12 +3,33 @@ Module defining the tile respresentation in dustmaker.
 """
 import copy
 from dataclasses import dataclass
+from enum import IntEnum
 import math
 from typing import List, Optional, Tuple
 
-from .enums import TileShape, TileSide, TileSpriteSet
-
 TxMatrix = List[List[float]]
+
+
+class TileSpriteSet(IntEnum):
+    """Used to describe what set of tiles a tile's sprite comes from."""
+
+    NONE_0 = 0
+    MANSION = 1
+    FOREST = 2
+    CITY = 3
+    LABORATORY = 4
+    TUTORIAL = 5
+    NEXUS = 6
+    NONE_7 = 7
+
+
+class TileSide(IntEnum):
+    """Used to index the sides of a tile."""
+
+    TOP = 0
+    BOTTOM = 1
+    LEFT = 2
+    RIGHT = 3
 
 
 @dataclass
@@ -23,6 +44,72 @@ class TileEdgeData:
     filth_spike: bool = False
     filth_caps: Tuple[bool, bool] = (False, False)
     filth_angles: Tuple[int, int] = (0, 0)
+
+
+class TileShape(IntEnum):
+    """Tiles come in four main types; full, half, big, and small.
+
+    Full corresponds to a complete square tile.
+
+    Half corresponds to one of the tiles aligned to 45 degrees that take up
+    half of the tile unit.  These come in four varieties A, B, C, and D
+    depicted on the wheel below.
+
+    Big and small tiles form the inbetween angles.  The big tile variant
+    covers 75% of the tile while the small tile variant covers 25% of the
+    tile.  Each of these comes in 8 varieties 1-8 depicted in the wheel below.
+
+    To determine the angle of a half, big, or small tile from its shape find
+    its identifier in the wheel.  Imagine you were located at X and the +
+    characters formed a circle around you; the angle of the tile would be
+    approximately the angle of the circle surface where its label is.::
+
+              +++++
+           +7+     +3+
+          +           +
+         +             +
+        B               C
+       +                 +
+      +                   +
+      2                   6
+      +                   +
+     +                     +
+     +                     +
+     +          X          +
+     +                     +
+     +                     +
+      +                   +
+      8                   4
+      +                   +
+       +                 +
+        A               D
+         +             +
+          +           +
+           +1+     +5+
+              +++++
+    """
+
+    FULL = 0
+    BIG_1 = 1
+    SMALL_1 = 2
+    BIG_2 = 3
+    SMALL_2 = 4
+    BIG_3 = 5
+    SMALL_3 = 6
+    BIG_4 = 7
+    SMALL_4 = 8
+    BIG_5 = 9
+    SMALL_5 = 10
+    BIG_6 = 11
+    SMALL_6 = 12
+    BIG_7 = 13
+    SMALL_7 = 14
+    BIG_8 = 15
+    SMALL_8 = 16
+    HALF_A = 17
+    HALF_B = 18
+    HALF_C = 19
+    HALF_D = 20
 
 
 class Tile:
@@ -95,6 +182,16 @@ class Tile:
             self._unpack_tile_data(tile_data)
         if dust_data is not None:
             self._unpack_dust_data(dust_data)
+
+    def sprite_tuple(self) -> Tuple[TileSpriteSet, int, int]:
+        """Convenience method for getting a tuple that describes the sprite
+        of a tile for easy sprite comparisons.
+
+        Returns:
+            (sprite_set, sprite_tile, sprite_palette) (TileSpriteSet, int, int):
+                the sprite set, tile, and palette of this tile.
+        """
+        return (self.sprite_set, self.sprite_tile, self.sprite_palette)
 
     @property
     def sprite_path(self) -> str:
@@ -318,7 +415,7 @@ class Tile:
             assert -0x80 <= edge.angles[0] <= 0x7F and -0x80 <= edge.angles[1] <= 0x7F
             v0, v1 = edge.angles
             if side in (TileSide.LEFT, TileSide.BOTTOM):
-                v0, v1 = -v1, -v0
+                v0, v1 = v1, v0
             tile_data[2 + side * 2] = v0 & 0xFF
             tile_data[3 + side * 2] = v1 & 0xFF
 
@@ -353,7 +450,7 @@ class Tile:
             if v1 >= 0x80:
                 v1 -= 0x100
             if side in (TileSide.LEFT, TileSide.BOTTOM):
-                v0, v1 = -v1, -v0
+                v0, v1 = v1, v0
             edge.angles = (v0, v1)
 
         self.sprite_set = TileSpriteSet(tile_data[10] & 0xF)
@@ -423,7 +520,7 @@ class Tile:
 SHAPE_ORDERED_SIDES = tuple(
     tuple(TileSide(x) for x in y)
     for y in (
-        (0, 2, 1, 3),
+        (0, 3, 1, 2),
         (0, 1, 2),
         (0, 1),
         (3, 2, 0),
@@ -445,4 +542,42 @@ SHAPE_ORDERED_SIDES = tuple(
         (1, 0, 3),
         (0, 3, 1),
     )
+)
+
+
+# top-left, top-right, bottom-right, bottom-left coordinates
+SHAPE_VERTEXES = (
+    ((0, 0), (2, 0), (2, 2), (0, 2)),  # FULL
+    # Slants are rotations of each other
+    ((0, 0), (2, 1), (2, 2), (0, 2)),  # BIG_1
+    ((0, 1), (2, 2), (2, 2), (0, 2)),  # SMALL_1
+    ((0, 0), (2, 0), (1, 2), (0, 2)),  # BIG_2
+    ((0, 0), (1, 0), (0, 2), (0, 2)),  # SMALL_2
+    ((0, 0), (2, 0), (2, 2), (0, 1)),  # BIG_3
+    ((0, 0), (2, 0), (2, 1), (0, 0)),  # SMALL_3
+    ((1, 0), (2, 0), (2, 2), (0, 2)),  # BIG_4
+    ((2, 0), (2, 0), (2, 2), (1, 2)),  # SMALL_4
+    ((0, 1), (2, 0), (2, 2), (0, 2)),  # BIG_5
+    ((0, 2), (2, 1), (2, 2), (0, 2)),  # SMALL_5
+    ((0, 0), (2, 0), (2, 2), (1, 2)),  # BIG_6
+    ((1, 0), (2, 0), (2, 2), (2, 2)),  # SMALL_6
+    ((0, 0), (2, 0), (2, 1), (0, 2)),  # BIG_7
+    ((0, 0), (2, 0), (2, 0), (0, 1)),  # SMALL_7
+    ((0, 0), (1, 0), (2, 2), (0, 2)),  # BIG_8
+    ((0, 0), (0, 0), (1, 2), (0, 2)),  # SMALL_8
+    # Slopes are special because they always have a top and bottom so they
+    # don't simply rotate between each one. The repeated coordinate is
+    # always placed so it makes a left or right edge null.
+    ((0, 0), (2, 2), (2, 2), (0, 2)),  # HALF_A
+    ((0, 0), (2, 0), (2, 0), (0, 2)),  # HALF_B
+    ((0, 0), (2, 0), (2, 2), (0, 0)),  # HALF_C
+    ((0, 2), (2, 0), (2, 2), (0, 2)),  # HALF_D
+)
+
+# SIDE_CLOCKWISE_INDEX[side] gives
+SIDE_CLOCKWISE_INDEX = (
+    0,  # TOP
+    2,  # BOTTOM
+    3,  # LEFT
+    1,  # RIGHT
 )

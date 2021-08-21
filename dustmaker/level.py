@@ -3,12 +3,21 @@ Module defining the primary interface for working with levels in dustmaker.
 """
 import copy
 from enum import IntEnum
-from typing import Dict, List, Optional, Tuple, TypeVar
+import functools
+import math
+from typing import Callable, Dict, List, Optional, Tuple, TypeVar
 
 from .entity import bind_prop, Entity
 from .exceptions import LevelException
 from .prop import Prop
-from .tile import Tile
+from .tile import (
+    Tile,
+    TileEdgeData,
+    TileShape,
+    TileSide,
+    TileSpriteSet,
+    SHAPE_VERTEXES,
+)
 from .variable import Variable, VariableBool, VariableInt, VariableString
 
 T = TypeVar("T")
@@ -392,3 +401,216 @@ class Level:
             for (layer, x, y), tile in self.tiles.items()
             for dx, dy, ntile in tile.upscale(factor)
         }
+
+    def calculate_edge_visibility(
+        self,
+        *,
+        visible_callback: Optional[
+            Callable[[int, int, TileSide, Tile, Tile], bool]
+        ] = None,
+    ) -> None:
+        """This method will automatically calculate edge solidity and
+        visibility in a way meant to match Dustforce rules.
+
+        Solidity will always imply visibility. An edge that doesn't exist
+        is always not visible. Otherwise an edge that is not flush to a
+        tile border (e.g. the diagonal of a slope tile) is solid. Otherwise
+        if the neighboring tile does not exist or is not also flush the
+        edge is solid.
+
+        In any other case the edge is not solid. If the tile sprite information
+        matches its neighbor the edge is not visible. Otherwise
+        `visible_callback` is called to determine if the edge is visible. If
+        `visible_callback` is not set this defaults to the edge being a
+        bottom or right edge.
+
+        Arguments:
+            visible_callback (func(x: int, y: int, side: TileSide, tile: Tile, neighbor_tile: Tile) -> bool):
+                Callback used to determine if a given edge should be visible if
+                all other checks have passed. Typically this function should be
+                anti-symetric so that there are not overlapping visible edges.
+        """
+        # cw_index[side] gives the index of `side` when sides are listed in cw
+        # order.
+        cw_index = (0, 2, 3, 1)
+        neighbor_dir = ((0, -1), (0, 1), (-1, 0), (1, 0))
+
+        @functools.lru_cache(maxsize=None)
+        def _check_edge(shape: TileShape, side: TileSide) -> Tuple[bool, bool]:
+            """Gets properties of a given edge for a given shape.
+
+            Returns:
+                (exists: bool, flush: bool)
+            """
+            ind = cw_index[side]
+            vert_a = SHAPE_VERTEXES[shape][ind]
+            vert_b = SHAPE_VERTEXES[shape][(ind + 1) & 0x3]
+
+            if abs(vert_a[0] - vert_b[0]) + abs(vert_a[1] - vert_b[1]) <= 1:
+                return False, False
+            return True, vert_a[0] == vert_b[0] or vert_a[1] == vert_b[1]
+
+        for (layer, x, y), tile in self.tiles.items():
+            for side in TileSide:
+                edge_exists, edge_flush = _check_edge(tile.shape, side)
+
+                if not edge_exists:
+                    tile.edge_data[side] = TileEdgeData()
+                    continue
+
+                edat = tile.edge_data[side]
+                if not edge_flush:
+                    edat.solid = edat.visible = True
+                    continue
+
+                # Flush edge, check if neighbor is flush too
+                ndir = neighbor_dir[side]
+                ntile = self.tiles.get((layer, x + ndir[0], y + ndir[1]))
+
+                if ntile is None:
+                    edat.solid = edat.visible = True
+                    continue
+
+                nedge_exists, nedge_flush = _check_edge(ntile.shape, side ^ 1)
+                if not nedge_exists or not nedge_flush:
+                    edat.solid = edat.visible = True
+                    continue
+
+                edat.solid = False
+                if (tile.sprite_set, tile.sprite_tile, tile.sprite_palette) == (
+                    ntile.sprite_set,
+                    ntile.sprite_tile,
+                    ntile.sprite_palette,
+                ):
+                    edat.visible = False
+                elif visible_callback is None:
+                    edat.visible = side in (TileSide.BOTTOM, TileSide.RIGHT)
+                else:
+                    edat.visible = visible_callback(x, y, side, tile, ntile)
+
+    def calculate_edge_cap_angles(self) -> None:
+        """Calculates edge/filth cap flags and angles. This should be called
+        after all edge visibilty has been determined (see
+        :meth:`calculate_edge_visibility`).
+
+        To compute edge caps we consider only visible edges. Non-visible
+        edges will have their cap data appropriately zeroed. For each
+        visible edge we consider it in both orientations; going clockwise
+        and counter-clockwise around the tile.
+
+        Edges that end between tile widths (i.e. for the slant edge of a
+        slant) can never have an edge cap. For these edges the edge/filth cap
+        should be set to False and the angles zeroed.
+
+        The first step to computing the cap flag and angle for a given edge
+        orientation is to find the "joining" edge. A joining edge must have
+        the following properties:
+
+        * Belong to a tile with the same sprite
+        * Be the same side of the tile (i.e. ground edges don't connect to walls)
+
+        If there are multiple joining edges the one that moves the most in the
+        positive normal direction of the edge face should be selected.
+
+        If there is no joining edge the edge cap should be set to True and
+        the edge angle should be zeroed. If there is a joining edge the edge
+        cap should be set to False and the edge angle should be half the angle
+        delta rounded down. Clockwise turns should be positive,
+        counter-clockwise turns should be negative.
+
+        Finally if the edge has no filth then the filth cap and angle should be
+        zeroed. If there is filth on this edge but not the joining edge, or the
+        filth sprites/spike types don't match, the filth cap should be set to
+        True and filth angle to 0. Otherwise the filth cap should be False and
+        the filth angle should match the edge angle.
+        """
+        cw_index = (0, 2, 3, 1)
+        for (layer, x, y), tile in self.tiles.items():
+            for side, edge_data in zip(TileSide, tile.edge_data):
+                if not edge_data.visible:
+                    # Clear all invalid data for invisible tiles.
+                    edge_data.caps = (False, False)
+                    edge_data.angles = (0, 0)
+                    edge_data.filth_caps = (False, False)
+                    edge_data.filth_angles = (0, 0)
+                    edge_data.filth_sprite_set = TileSpriteSet.NONE_0
+                    edge_data.filth_spike = False
+                    continue
+
+                # Use temporarily mutable locals to write results
+                caps = [False, False]
+                angles = [0, 0]
+                filth_caps = [False, False]
+                filth_angles = [0, 0]
+
+                for dr in range(2):
+                    cw_ind = cw_index[side]
+                    vert_a = SHAPE_VERTEXES[tile.shape][(cw_ind + 1 - dr) & 0x3]
+                    vert_b = SHAPE_VERTEXES[tile.shape][(cw_ind + dr) & 0x3]
+
+                    ddirs: Tuple[Tuple[int, int], ...] = ()
+                    if vert_b == (0, 0):
+                        ddirs = ((-1, 0), (-1, -1), (0, -1))
+                    elif vert_b == (2, 0):
+                        ddirs = ((0, -1), (1, -1), (1, 0))
+                    elif vert_b == (2, 2):
+                        ddirs = ((1, 0), (1, 1), (0, 1))
+                    elif vert_b == (0, 2):
+                        ddirs = ((0, 1), (-1, 1), (-1, 0))
+                    else:  # Slants
+                        # No caps allowed on slant half edges
+                        continue
+                    if dr:
+                        ddirs = ddirs[::-1]
+
+                    for dx, dy in ddirs:
+                        ntile = self.tiles.get((layer, x + dx, y + dy))
+                        if ntile is None or tile.sprite_tuple() != ntile.sprite_tuple():
+                            continue
+
+                        nedge_data = ntile.edge_data[side]
+                        if not nedge_data.visible:
+                            continue
+
+                        nvert_a = SHAPE_VERTEXES[ntile.shape][(cw_ind + 1 - dr) & 0x3]
+                        nvert_b = SHAPE_VERTEXES[ntile.shape][(cw_ind + dr) & 0x3]
+                        nvert_a = (nvert_a[0] + dx * 2, nvert_a[1] + dy * 2)
+                        nvert_b = (nvert_b[0] + dx * 2, nvert_b[1] + dy * 2)
+                        if vert_b == nvert_a:
+                            break
+                    else:
+                        # No joiner
+                        caps[dr] = True
+                        angles[dr] = 0
+                        filth_caps[dr] = bool(edge_data.filth_sprite_set)
+                        filth_angles[dr] = 0
+                        continue
+
+                    delta_angle = (
+                        math.atan2(vert_b[1] - vert_a[1], vert_b[0] - vert_a[0])
+                        - math.atan2(nvert_b[1] - nvert_a[1], nvert_b[0] - nvert_a[0])
+                    ) % (2 * math.pi)
+                    if delta_angle > math.pi:
+                        delta_angle -= 2 * math.pi
+
+                    angle = -int(round(delta_angle * 180 / math.pi / 2))
+
+                    # Set caps and angles based on joiner
+                    caps[dr] = False
+                    angles[dr] = angle
+                    filth_angles[dr] = 0
+                    filth_caps[dr] = False
+                    if edge_data.filth_sprite_set:
+                        # pylint: disable=undefined-loop-variable
+                        if (edge_data.filth_spike, edge_data.filth_sprite_set) == (
+                            nedge_data.filth_spike,
+                            nedge_data.filth_sprite_set,
+                        ):
+                            filth_angles[dr] = angle
+                        else:
+                            filth_caps[dr] = True
+
+                edge_data.caps = tuple(caps)  # type: ignore
+                edge_data.angles = tuple(angles)  # type: ignore
+                edge_data.filth_caps = tuple(filth_caps)  # type: ignore
+                edge_data.filth_angles = tuple(filth_angles)  # type: ignore
