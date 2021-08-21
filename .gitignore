@@ -3,4 +3,5 @@ __pycache__
 *.pyc
 *.egg
 *.egg-info
+docs/_build
 

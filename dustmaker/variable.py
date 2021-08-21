@@ -174,6 +174,7 @@ class VariableArray(Variable):
     ) -> None:
         super().__init__((element_type, list(values or [])))
 
+    @property
     def element_type(self) -> Type[Variable]:
         """Returns the element type of this array."""
         return self.value[0]

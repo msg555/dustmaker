@@ -219,11 +219,11 @@ class BitIOWriter(BitIO):
     def close(self) -> None:
         """Flush any pending bits and close the underlying stream."""
         try:
-            self._flush()
+            self.flush()
         finally:
             super().close()
 
-    def _flush(self) -> None:
+    def flush(self) -> None:
         """Flushes any trailing bits. As a side effect seeks the data stream
         forward."""
         if self._bits_left != 0 and self._bits != -1:
@@ -234,7 +234,7 @@ class BitIOWriter(BitIO):
         not require the underlying data stream to support seek. This also
         triggers a flush.
         """
-        self._flush()
+        self.flush()
         super().align()
 
     # pylint: disable=arguments-differ
@@ -246,5 +246,5 @@ class BitIOWriter(BitIO):
             raise RuntimeError(
                 "cannot perform unaligned seek, set allow_unaligned=True if you really want this"
             )
-        self._flush()
+        self.flush()
         super().bit_seek(pos)

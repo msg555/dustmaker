@@ -7,7 +7,7 @@ format-check:
 	$(PYTHON) -m black --check .
 
 pylint:
-	$(PYTHON) -m pylint dustmaker tests examples
+	$(PYTHON) -m pylint dustmaker tests
 
 typecheck:
 	$(PYTHON) -m mypy dustmaker

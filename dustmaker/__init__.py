@@ -1,11 +1,12 @@
-""" Dustmaker public exports """
-from .level_map import Map
-from .entity import *
+""" Dustmaker explicit public exports. This is not the extent of the public
+API, merely a convenience for accessing the most commonly used parts.
+"""
+from .level import Level
+from .entity import Entity
 from .prop import Prop
-from .variable import Variable, VariableType
-from .enums import *
-from .map_exception import MapException, MapParseException
-from .tile import Tile, TileShape, TileSpriteSet, TileSide
+from .variable import Variable
+from .exceptions import LevelException, LevelParseException
+from .tile import Tile
 
-from .map_reader import read_map, DFReader
-from .map_writer import write_map, DFWriter
+from .dfreader import read_level, DFReader
+from .dfwriter import write_level, DFWriter

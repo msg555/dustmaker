@@ -1,5 +1,5 @@
 """
-Module providing methods for reading Dustforce binary formats including map
+Module providing methods for reading Dustforce binary formats including level
 files.
 """
 import functools
@@ -9,9 +9,8 @@ import zlib
 
 from .bitio import BitIOReader
 from .entity import Entity
-from .enums import LevelType
-from .level_map import Map
-from .map_exception import MapParseException
+from .level import Level, LevelType
+from .exceptions import LevelParseException
 from .prop import Prop
 from .tile import Tile, TileShape
 from .variable import (
@@ -34,7 +33,7 @@ class DFReader(BitIOReader):
     def read_expect(self, data: bytes) -> None:
         """Ensure the next bytes match `data`"""
         if data != self.read_bytes(len(data)):
-            raise MapParseException("unexpected data")
+            raise LevelParseException("unexpected data")
 
     def read_float(self, ibits: int, fbits: int) -> float:
         """Read a float using `ibits` integer bits and `fbits` floating
@@ -65,7 +64,7 @@ class DFReader(BitIOReader):
     def read_var_type(self, vtype: VariableType, allow_continuation=True) -> Variable:
         """Read a variable of a given type"""
         if vtype == VariableType.NULL:
-            raise MapParseException("unexpected null variable")
+            raise LevelParseException("unexpected null variable")
         if vtype == VariableType.BOOL:
             return VariableBool(self.read(1) == 1)
         if vtype == VariableType.UINT:
@@ -117,7 +116,7 @@ class DFReader(BitIOReader):
         if vtype == VariableType.STRUCT:
             return VariableStruct(self.read_var_map())
 
-        raise MapParseException("unknown var type")
+        raise LevelParseException("unknown var type")
 
     def read_var(self) -> Optional[Tuple[str, Variable]]:
         """Read a named variable"""
@@ -138,9 +137,9 @@ class DFReader(BitIOReader):
             result[var[0]] = var[1]
 
     def read_segment(
-        self, mmap: Map, xoffset: int, yoffset: int, config: Dict[str, Any]
+        self, level: Level, xoffset: int, yoffset: int, config: Dict[str, Any]
     ) -> None:
-        """Read a segment into the passed map"""
+        """Read a segment into the passed level"""
         start_index = self.bit_tell()
 
         segment_size = self.read(32)
@@ -170,7 +169,7 @@ class DFReader(BitIOReader):
                     shape = self.read(5)
                     tile_flags = self.read(3)
                     data = self.read_bytes(12)
-                    mmap.tiles[(layer, xoffset + txpos, yoffset + typos)] = Tile(
+                    level.tiles[(layer, xoffset + txpos, yoffset + typos)] = Tile(
                         TileShape(shape & 0x1F),
                         tile_flags=tile_flags,
                         tile_data=data,
@@ -182,7 +181,7 @@ class DFReader(BitIOReader):
                 txpos = self.read(5)
                 typos = self.read(5)
                 data = self.read_bytes(12)
-                tile = mmap.tiles.get((19, xoffset + txpos, yoffset + typos))
+                tile = level.tiles.get((19, xoffset + txpos, yoffset + typos))
                 if tile is not None:
                     tile._unpack_dust_data(data)
 
@@ -223,8 +222,8 @@ class DFReader(BitIOReader):
                 palette = self.read(8)
 
                 # Default DF behavior is to overwrite repeated props
-                mmap.props.pop(id_num, None)
-                mmap.add_prop(
+                level.props.pop(id_num, None)
+                level.add_prop(
                     layer,
                     xpos,
                     ypos,
@@ -280,7 +279,7 @@ class DFReader(BitIOReader):
                     )
                 )
 
-            # Read in extended names if present and add entities to map
+            # Read in extended names if present and add entities to level
             if has_extended_names:
                 self.bit_seek(start_index + (segment_size - 4) * 8)
                 extra_names_index = self.read(32)
@@ -289,7 +288,7 @@ class DFReader(BitIOReader):
             for etype, xpos, ypos, eargs, id_num in entities:
                 if has_extended_names and etype == "entity":
                     etype = self.read_6bit_str()
-                mmap.add_entity(
+                level.add_entity(
                     xpos,
                     ypos,
                     Entity._from_raw(etype, *eargs),
@@ -298,8 +297,8 @@ class DFReader(BitIOReader):
 
         self.bit_seek(start_index + segment_size * 8)
 
-    def read_region(self, mmap: Map, config: Dict[str, Any]) -> None:
-        """Read a region into the passed map"""
+    def read_region(self, level: Level, config: Dict[str, Any]) -> None:
+        """Read a region into the passed level"""
         region_len = self.read(32)
         uncompressed_len = self.read(32)  # pylint: disable=unused-variable
         offx = self.read(16, True)
@@ -313,13 +312,13 @@ class DFReader(BitIOReader):
         )
         for _ in range(segments):
             sub_reader.align()
-            sub_reader.read_segment(mmap, offx * 256, offy * 256, config)
+            sub_reader.read_segment(level, offx * 256, offy * 256, config)
 
         if has_backdrop:
-            if mmap.backdrop is None:
-                raise ValueError("no backdrop present in map")
+            if level.backdrop is None:
+                raise ValueError("no backdrop present in level")
             sub_reader.align()
-            sub_reader.read_segment(mmap.backdrop, offx * 16, offy * 16, config)
+            sub_reader.read_segment(level.backdrop, offx * 16, offy * 16, config)
 
     def read_metadata(self) -> Dict[str, Any]:
         """Read a metadata block (DF_MTD)"""
@@ -346,16 +345,35 @@ class DFReader(BitIOReader):
         statSize = self.read(32)  # pylint: disable=unused-variable
         return self.read_var_map()
 
-    def read_map(self) -> Map:
-        """Reads a map file from the passed data source
+    def read_level_ex(self) -> Tuple[Level, List[int]]:
+        """Read a level file metadata into a :class:`Level` object and
+        extracting additional metadata so that the rest of the data can be
+        ingested in an opaque way. `read_level_ex` ends with the reader
+        byte-aligned. The entirety of the region data can be read subsequently
+        with reader.read_bytes(region_bytes) or using :meth:`region_region`.
 
-        On error raises a MapParseException.
+        # Example of modifying level metadata without processing entire level.
+        level, region_offsets = reader.read_level_ex()
+        region_data = reader.read_bytes(region_offsets[-1])
+        level.variables["myvar"] = ...
+        level.sshot = ...
+        writer.write_level_ex(level, region_offsets, region_data)
+
+        Returns:
+            (level (Level), region_offsets (list[int])): Returns
+                a two-tuple. `level` gives a level object with only
+                :attr:`Level.variables` and :attr:`Level.sshot` set.
+                `region_offsets` gives the byte offset of each region relative
+                to the current stream position. The last offset corresponds to
+                the end of region data and not a region itself.
         """
+        assert self.aligned()
+        start_index = self.bit_tell()
         self.read_expect(b"DF_LVL")
 
         version = self.read(16)
         if version <= 42:
-            raise MapParseException("unsupported level version")
+            raise LevelParseException("unsupported level version")
 
         filesize = self.read(32)  # pylint: disable=unused-variable
         num_regions = self.read(32)
@@ -366,27 +384,45 @@ class DFReader(BitIOReader):
             sshot_len = self.read(32)
             sshot_data = self.read_bytes(sshot_len)
 
-        mmap = Map()
-        mmap.variables = self.read_var_map()
-        mmap.sshot = sshot_data
+        level = Level()
+        level._next_id = meta["entityUid"]
+        level.variables = self.read_var_map()
+        level.sshot = sshot_data
 
-        config = {"scaled_props": mmap.level_type == LevelType.DUSTMOD}
-
+        region_offsets = [self.read(32) for _ in range(num_regions)]
         self.align()
-        self.skip(num_regions * 32)
-        for _ in range(num_regions):
-            self.read_region(mmap, config)
-        return mmap
+
+        region_offsets.append(filesize - ((self.bit_tell() - start_index) >> 3))
+        return level, region_offsets
+
+    def read_level(self, *, metadata_only: bool = False) -> Level:
+        """Reads a level file from the passed data source
+
+        Arguments:
+            metadata_only (bool, optional): If set to True only the variables
+                and sshot data will be set in the returned :class:`Level`.
+
+        Raises:
+            LevelParseException: Parser ran into unexpected data.
+        """
+        level, region_offsets = self.read_level_ex()
+        if metadata_only:
+            return level
+
+        config = {"scaled_props": level.level_type == LevelType.DUSTMOD}
+        for _ in range(len(region_offsets) - 1):
+            self.read_region(level, config)
+        return level
 
     read_stat_file = functools.partial(read_var_file, header=b"DF_STA")
     read_config_file = functools.partial(read_var_file, header=b"DF_CFG")
     read_fog_file = functools.partial(read_var_file, header=b"DF_FOG")
 
 
-def read_map(data: bytes) -> Map:
-    """Convenience method to read in a map from bytes directly"""
+def read_level(data: bytes) -> Level:
+    """Convenience method to read in a level from bytes directly"""
     with DFReader(io.BytesIO(data), noclose=True) as reader:
-        return reader.read_map()
+        return reader.read_level()
 
 
 # pylint: disable=fixme

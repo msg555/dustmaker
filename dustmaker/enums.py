@@ -4,19 +4,6 @@ Commonly used enums in Dustmaker
 from enum import IntEnum
 
 
-class LevelType(IntEnum):
-    """
-    Enum defining the different level types
-    """
-
-    NORMAL = 0
-    NEXUS = 1
-    NEXUS_MP = 2
-    KOTH = 3
-    SURVIVAL = 4
-    DUSTMOD = 6
-
-
 class CameraNodeType(IntEnum):
     """
     Enum defining the different camera node types

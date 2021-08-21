@@ -1,10 +1,16 @@
 """
 End to end tests for Dustmaker as a whole
 """
+import io
 import os
 import unittest
 
-from dustmaker import read_map, write_map
+from dustmaker import (
+    read_level,
+    write_level,
+    DFReader,
+    DFWriter,
+)
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -21,8 +27,24 @@ class TestEndToEnd(unittest.TestCase):
         with open(f_in, "rb") as f:
             data = bytes(f.read())
 
-        map1 = read_map(data)
-        data1 = write_map(map1)
-        map2 = read_map(data1)
-        data2 = write_map(map2)
+        level1 = read_level(data)
+        data1 = write_level(level1)
+
+        with DFReader(io.BytesIO(data1)) as reader:
+            level2 = reader.read_level()
+
+        with DFWriter(io.BytesIO()) as writer:
+            writer.write_level(level2)
+            writer.flush()
+            data2 = writer.data.getvalue()
+
         self.assertEqual(data1, data2)
+
+        with DFReader(io.BytesIO(data2)) as reader:
+            level3, region_offsets = reader.read_level_ex()
+            region_data = reader.read_bytes(region_offsets[-1])
+
+        with DFWriter(io.BytesIO()) as writer:
+            writer.write_level_ex(level3, region_offsets, region_data)
+            data3 = writer.data.getvalue()
+            self.assertEqual(data1, data3)

@@ -1,16 +1,16 @@
 """
-Module providing methods for write Dustforce binary formats including map
+Module providing methods for write Dustforce binary formats including level
 files.
 """
 import functools
 import io
 from math import floor, log
-from typing import Dict, List, Tuple
+from typing import Dict, Iterable, List, Tuple, Union
 import zlib
 
 from .bitio import BitIOWriter
-from .level_map import Map
-from .map_exception import MapParseException
+from .level import Level
+from .exceptions import LevelParseException
 from .tile import TileSpriteSet
 from .variable import (
     Variable,
@@ -26,7 +26,7 @@ from .variable import (
 )
 
 
-class MapSegment:
+class LevelSegment:
     """Container class with raw information about a segment"""
 
     def __init__(self):
@@ -36,15 +36,15 @@ class MapSegment:
         self.present = True
 
 
-class MapRegion:
+class LevelRegion:
     """Container class for region data"""
 
     def __init__(self):
         self.segment_map = {}
-        self.backdrop = MapSegment()
+        self.backdrop = LevelSegment()
         self.backdrop.present = False
 
-    def get_segment(self, x: int, y: int) -> MapSegment:
+    def get_segment(self, x: int, y: int) -> LevelSegment:
         """Return the segment at the given coordinate within this region"""
         seg_key = ((x // 16) & 0xF, (y // 16) & 0xF)
 
@@ -52,7 +52,7 @@ class MapRegion:
         if seg is not None:
             return seg
 
-        seg = MapSegment()
+        seg = LevelSegment()
         self.segment_map[seg_key] = seg
         return seg
 
@@ -63,24 +63,24 @@ class RegionMap:
     def __init__(self):
         self.region_map = {}
 
-    def get_region(self, x: int, y: int) -> MapRegion:
+    def get_region(self, x: int, y: int) -> LevelRegion:
         """Return the region at the given coordinate"""
         reg_ky = (x // 256, y // 256)
         reg = self.region_map.get(reg_ky)
         if reg is not None:
             return reg
 
-        reg = MapRegion()
+        reg = LevelRegion()
         self.region_map[reg_ky] = reg
         return reg
 
-    def get_segment(self, x: int, y: int) -> MapSegment:
+    def get_segment(self, x: int, y: int) -> LevelSegment:
         """Return the segment at the given coordinate"""
         return self.get_region(x, y).get_segment(x, y)
 
     def get_region_keys(self) -> List[Tuple[int, int]]:
         """Return a list of the region keys sorted in the order required by the
-        Dustforce map format."""
+        Dustforce level format."""
 
         def norm_for_sort(coord):
             """Do some stuff to order regions correctly"""
@@ -95,34 +95,34 @@ class RegionMap:
         return sorted(self.region_map, key=norm_for_sort)
 
 
-def compute_region_map(mmap: Map) -> RegionMap:
-    """Constructs a region map based on the passed map file. This
+def compute_region_map(level: Level) -> RegionMap:
+    """Constructs a region map based on the passed level file. This
     structure separates all the tiles/props/entities into their respective
     regions as is used in the underlying binary representation.
     """
     rmap = RegionMap()
-    for (layer, tx, ty), tile in mmap.tiles.items():
+    for (layer, tx, ty), tile in level.tiles.items():
         rmap.get_segment(tx, ty).tiles[layer].append((tx & 0xF, ty & 0xF, tile))
 
-    for id_num, (x, y, entity) in mmap.entities.items():
+    for id_num, (x, y, entity) in level.entities.items():
         rmap.get_segment(int(x / 48), int(y / 48)).entities.append(
             (id_num, x, y, entity)
         )
 
-    for id_num, (layer, x, y, prop) in mmap.props.items():
+    for id_num, (layer, x, y, prop) in level.props.items():
         rmap.get_segment(int(x / 48), int(y / 48)).props.append(
             (id_num, layer, x, y, prop)
         )
 
-    if mmap.backdrop is None:
+    if level.backdrop is None:
         return rmap
 
-    for (layer, x, y), tile in mmap.backdrop.tiles.items():
+    for (layer, x, y), tile in level.backdrop.tiles.items():
         seg = rmap.get_region(x * 16, y * 16).backdrop
         seg.present = True
         seg.tiles[layer].append((x & 0xF, y & 0xF, tile))
 
-    for id_num, (layer, x, y, prop) in mmap.backdrop.props.items():
+    for id_num, (layer, x, y, prop) in level.backdrop.props.items():
         seg = rmap.get_region(int(x / 48), int(y / 48)).backdrop
         seg.present = True
         seg.props.append((id_num, layer, x, y, prop))
@@ -214,7 +214,7 @@ class DFWriter(BitIOWriter):
             self.write_var_map(value)
             return
 
-        raise MapParseException("unknown var type")
+        raise LevelParseException("unknown var type")
 
     def write_var(self, key: str, var: Variable) -> None:
         """Write a named variable to the output stream"""
@@ -228,7 +228,7 @@ class DFWriter(BitIOWriter):
             self.write_var(key, var)
         self.write(4, VariableType.NULL)
 
-    def write_segment(self, seg_x: int, seg_y: int, segment: MapSegment) -> None:
+    def write_segment(self, seg_x: int, seg_y: int, segment: LevelSegment) -> None:
         """Write a segment to the output stream"""
         assert self.aligned()
 
@@ -361,8 +361,8 @@ class DFWriter(BitIOWriter):
         self.write(32, flags)
         self.bit_seek(end_index)
 
-    def write_region(self, x: int, y: int, region: MapRegion) -> None:
-        """Writes a map region to the output stream"""
+    def write_region(self, x: int, y: int, region: LevelRegion) -> None:
+        """Writes a level region to the output stream"""
         segments_io = io.BytesIO()
         with DFWriter(segments_io) as segments_writer:
             for coord, segment in sorted(region.segment_map.items()):
@@ -385,12 +385,12 @@ class DFWriter(BitIOWriter):
     # Should match the number of bits written by write_metadata
     METADATA_BIT_SIZE = 224
 
-    def write_metadata(self, mmap: Map) -> None:
-        """Write a map metadata block to the output stream."""
+    def write_metadata(self, level: Level) -> None:
+        """Write a level metadata block to the output stream."""
         self.write_bytes(b"DF_MTD")
         self.write(16, 4)
         self.write(32, 0)
-        self.write(32, mmap._min_id)
+        self.write(32, level.calculate_max_id(reset=False) + 1)
         self.write(32, 0)
         self.write(32, 0)
         self.write(32, 0)
@@ -413,29 +413,100 @@ class DFWriter(BitIOWriter):
         self.write(32, (end_index - start_index) // 8)
         self.bit_seek(end_index)
 
-    def write_map(self, mmap: Map) -> None:
-        """Writes `mmap` to the output stream."""
+    def write_level_ex(
+        self,
+        level: Level,
+        region_offsets: List[int],
+        region_data: Union[bytes, Iterable[bytes]],
+    ) -> None:
+        """
+        Writes `level` to the output stream. This is the advanced API for
+        efficiently modifiying level metadata. If region_offsets is non-empty
+        this will use `region_offsets` and `region_data` to populate the region
+        data section of the output rather than calculating it from `level`. See
+        :meth:`write_level` for the standard API.
+
+        Arguments:
+            level (Level): The level file to write
+            region_offsets (list[int]): Region offset metadata as returned by
+                :meth:`DFReader.read_level_ex`. If empty this behaves the same
+                as :meth:`write_level`.
+            region_data: (bytes | Iterable[bytes]): Bytes data (or an iterable
+                of bytes data) to write in the region section of the map. If
+                `region_offsets` is empty this argument is ignored.
+        """
         assert self.aligned()
 
         start_index = self.bit_tell()
-        header_size = 160 + self.METADATA_BIT_SIZE + len(mmap.sshot) * 8
+        header_size = 160 + self.METADATA_BIT_SIZE + len(level.sshot) * 8
 
         self.bit_seek(start_index + header_size)
 
         # Write variable mapping and record size
-        self.write_var_map(mmap.variables)
+        self.write_var_map(level.variables)
 
         # Skip over the region directory for now
-        rmap = compute_region_map(mmap)
+        if region_offsets:
+            num_regions, end_index = self._write_regions_raw(
+                region_offsets, region_data
+            )
+        else:
+            num_regions, end_index = self._write_regions_from_level(level)
+
+        # Got back to start and rewrite header.
+        self.bit_seek(start_index)
+        self.write_bytes(b"DF_LVL")
+        self.write(16, 44)
+        self.write(32, (end_index - start_index) // 8)
+        self.write(32, num_regions)
+        self.write_metadata(level)
+        self.write(32, len(level.sshot))
+        self.write_bytes(level.sshot)
+        self.bit_seek(end_index)
+
+    def _write_regions_raw(
+        self, region_offsets: List[int], region_data: Union[bytes, Iterable[bytes]]
+    ) -> Tuple[int, int]:
+        """Helper function to write region data from raw offset/data
+        information.
+
+        Returns:
+            The ending bit index.
+        """
+        for region_offset in region_offsets[:-1]:
+            self.write(32, region_offset)
+
+        self.align()
+
+        start_index = self.bit_tell()
+        if isinstance(region_data, bytes):
+            self.write_bytes(region_data)
+        else:
+            for data in region_data:
+                self.write_bytes(data)
+        end_index = self.bit_tell()
+
+        if end_index - start_index != region_offsets[-1] * 8:
+            raise LevelParseException("got unexpected amount of regiond ata")
+
+        return len(region_offsets) - 1, self.bit_tell()
+
+    def _write_regions_from_level(self, level: Level) -> Tuple[int, int]:
+        """Helper function to write region data from the level
+
+        Returns:
+            The ending bit index.
+        """
+        rmap = compute_region_map(level)
         region_dir_index = self.bit_tell()
         region_data_index = (region_dir_index + 32 * len(rmap.region_map) + 7) & ~0x7
         self.bit_seek(region_data_index)
-        region_indexes = []
+        region_offsets = []
 
         # Write the region data
         for rx, ry in rmap.get_region_keys():
             self.align()
-            region_indexes.append((self.bit_tell() - region_data_index) // 8)
+            region_offsets.append((self.bit_tell() - region_data_index) // 8)
             self.write_region(rx, ry, rmap.region_map[(rx, ry)])
 
         end_index = self.bit_tell()
@@ -445,29 +516,28 @@ class DFWriter(BitIOWriter):
         # Since the first element is zero anyway we just skip it to avoid
         # writing over the var map.
         self.bit_seek(region_dir_index + 32, allow_unaligned=True)
-        for region_index in region_indexes[1:]:
-            self.write(32, region_index)
+        for region_offset in region_offsets[1:]:
+            self.write(32, region_offset)
 
-        # Got back to start and rewrite header.
-        self.bit_seek(start_index)
-        self.write_bytes(b"DF_LVL")
-        self.write(16, 44)
-        self.write(32, (end_index - start_index) // 8)
-        self.write(32, len(rmap.region_map))
-        self.write_metadata(mmap)
-        self.write(32, len(mmap.sshot))
-        self.write_bytes(mmap.sshot)
-        self.bit_seek(end_index)
+        return len(rmap.region_map), end_index
+
+    def write_level(self, level: Level) -> None:
+        """Writes `level` to the output stream.
+
+        Arguments:
+            level (Level): The level file to write
+        """
+        self.write_level_ex(level, [], b"")
 
     write_stat_file = functools.partial(write_var_file, header=b"DF_STA")
     write_config_file = functools.partial(write_var_file, header=b"DF_CFG")
     write_fog_file = functools.partial(write_var_file, header=b"DF_FOG")
 
 
-def write_map(mmap: Map) -> bytes:
+def write_level(level: Level) -> bytes:
     """Convenience method to write a map file and return the written bytes."""
     with DFWriter(io.BytesIO()) as writer:
-        writer.write_map(mmap)
+        writer.write_level(level)
         return writer.data.getvalue()
 
 
