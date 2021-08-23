@@ -17,7 +17,6 @@ tile module
 
 .. automodule:: dustmaker.tile
    :members:
-   :undoc-members:
    :show-inheritance:
 
 variable module

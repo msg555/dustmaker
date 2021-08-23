@@ -5,7 +5,7 @@ import copy
 from enum import IntEnum
 import functools
 import math
-from typing import Callable, Dict, List, Optional, Tuple, TypeVar
+from typing import Callable, Dict, Optional, Tuple, TypeVar
 
 from .entity import bind_prop, Entity
 from .exceptions import LevelException
@@ -18,10 +18,10 @@ from .tile import (
     TileSpriteSet,
     SHAPE_VERTEXES,
 )
+from .transform import TxMatrix
 from .variable import Variable, VariableBool, VariableInt, VariableString
 
 T = TypeVar("T")
-TxMatrix = List[List[float]]
 
 
 class LevelType(IntEnum):
@@ -136,12 +136,14 @@ class Level:
     dustmod_version = bind_prop("dustmod_version", VariableString, b"")
 
     def start_position(self, player: int = 1) -> PlayerPosition:
-        """Returns a player position class that can access/modify the starting
-        position of each player.
+        """Access and modify the starting position of each player.
 
         Args:
             player (int, optional): The player to access the starting position
                 of. Valid options are 1, 2, 3, 4. Defaults to player 1.
+
+        Returns:
+            An accessor class with `x` and `y` attributes that can be get/set.
         """
         return PlayerPosition(self.variables, player)
 
@@ -212,7 +214,7 @@ class Level:
             x (float): The number of pixels to move horizontally.
             y (float): The number of pixels to move vertically.
         """
-        self.transform([[1, 0, x], [0, 1, y], [0, 0, 1]])
+        self.transform(TxMatrix.IDENTITY.translate(x, y))
 
     def remap_ids(self, min_id: int = 100) -> None:
         """Remap prop and entity ids starting at `min_id`. This is useful
@@ -221,6 +223,9 @@ class Level:
 
         Args:
             min_id (int, optional): The minimum ID to assign to a prop or entity.
+
+        Warning:
+            Dustmaker has no way to remap entity IDs in script persist data.
         """
         self._next_id = min_id
 
@@ -287,62 +292,38 @@ class Level:
             mat: The 3 by 3 affine transformation matrix [x', y', 1]' = mat *
                 [x, y, 1]'. It should be of the form
                 `mat = [[xx, xy, ox], [yx, yy, oy], [0, 0, 1]]`.
+
+        Warning:
+            Dustmaker has no way to transform positional data in script persist data.
         """
-        self.tiles = {
-            (
-                layer,
-                int(
-                    round(
-                        mat[0][2] / 48.0
-                        + x * mat[0][0]
-                        + y * mat[0][1]
-                        + min(0, mat[0][0])
-                        + min(0, mat[0][1])
-                    )
-                ),
-                int(
-                    round(
-                        mat[1][2] / 48.0
-                        + x * mat[1][0]
-                        + y * mat[1][1]
-                        + min(0, mat[1][0])
-                        + min(0, mat[1][1])
-                    )
-                ),
-            ): tile
-            for (layer, x, y), tile in self.tiles.items()
-        }
-        self.props = {
-            id_num: (
-                layer,
-                mat[0][2] + x * mat[0][0] + y * mat[0][1],
-                mat[1][2] + x * mat[1][0] + y * mat[1][1],
-                prop,
-            )
-            for id_num, (layer, x, y, prop) in self.props.items()
-        }
-        for tile in self.tiles.values():
-            tile.transform(mat)
-        for _, _, _, prop in self.props.values():
-            prop.transform(mat)
+
+        def _transform_tiles():
+            for (layer, x, y), tile in self.tiles.items():
+                tile.transform(mat)
+                tx, ty = mat.sample(x * 48, y * 48)
+
+                yield (layer, int(round(tx / 48.0)), int(round(ty / 48.0))), tile
+
+        def _transform_props():
+            for id_num, (layer, x, y, prop) in self.props.items():
+                prop.transform(mat)
+                tx, ty = mat.sample(x, y)
+                yield id_num, (layer, tx, ty, prop)
+
+        def _transform_entities():
+            for id_num, (x, y, entity) in self.entities.items():
+                entity.transform(mat)
+                tx, ty = mat.sample(x, y)
+                yield id_num, (tx, ty, entity)
+
+        self.tiles = dict(_transform_tiles())
+        self.props = dict(_transform_props())
+        self.entities = dict(_transform_entities())
 
         for player in range(1, 5):
             pos = self.start_position(player)
-            pos.x, pos.y = (
-                int(round(mat[0][2] + pos.x * mat[0][0] + pos.y * mat[0][1])),
-                int(round(mat[1][2] + pos.x * mat[1][0] + pos.y * mat[1][1])),
-            )
-
-        self.entities = {
-            id_num: (
-                mat[0][2] + x * mat[0][0] + y * mat[0][1],
-                mat[1][2] + x * mat[1][0] + y * mat[1][1],
-                entity,
-            )
-            for id_num, (x, y, entity) in self.entities.items()
-        }
-        for _, _, entity in self.entities.values():
-            entity.transform(mat)
+            pos_tx, pos_ty = mat.sample(pos.x, pos.y)
+            pos.x, pos.y = int(round(pos_tx)), int(round(pos_ty))
 
         if self.backdrop is not None:
             self.backdrop.transform(mat)
@@ -350,12 +331,12 @@ class Level:
     def flip_horizontal(self) -> None:
         """Flips the level horizontally. This is a convenience function around
         :meth:`transform`."""
-        self.transform([[-1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        self.transform(TxMatrix.HFLIP)
 
     def flip_vertical(self) -> None:
         """Flips the level vertically. This is a convenience function around
         :meth:`transform`."""
-        self.transform([[1, 0, 0], [0, -1, 0], [0, 0, 1]])
+        self.transform(TxMatrix.VFLIP)
 
     def rotate(self, times: int = 1) -> None:
         """Rotates the level 90 degrees clockwise. This is a convenience function
@@ -366,14 +347,9 @@ class Level:
                 to perform. `times` may be negative to perform counterclockwise
                 rotations.
         """
-        cs = (1, 0, -1, 0)
-        sn = (0, 1, 0, -1)
-        times %= 4
-        self.transform(
-            [[cs[times], -sn[times], 0], [sn[times], cs[times], 0], [0, 0, 1]]
-        )
+        self.transform(TxMatrix.ROTATE[times % 4])
 
-    def upscale(self, factor: int, *, mat: Optional[TxMatrix] = None) -> None:
+    def upscale(self, factor: int, *, mat: TxMatrix = TxMatrix.IDENTITY) -> None:
         """Increase the size of the level along each axis.
 
         Args:
@@ -383,19 +359,7 @@ class Level:
             mat (optional): An additional transformation matrix to pass
                 to :meth:`transform` along with the upscaling.
         """
-        if mat is None:
-            self.transform([[factor, 0, 0], [0, factor, 0], [0, 0, 1]])
-        else:
-            self.transform(
-                [
-                    [
-                        val * (factor if col < 2 else 1)
-                        for col, val in enumerate(mat_row)
-                    ]
-                    for mat_row in mat
-                ]
-            )
-
+        self.transform(mat * factor)
         self.tiles = {
             (layer, x + dx, y + dy): ntile
             for (layer, x, y), tile in self.tiles.items()
@@ -413,22 +377,25 @@ class Level:
         visibility in a way meant to match Dustforce rules.
 
         Solidity will always imply visibility. An edge that doesn't exist
-        is always not visible. Otherwise an edge that is not flush to a
+        for the given tile shape is always not visible. Otherwise an edge
+        that is not flush to a
         tile border (e.g. the diagonal of a slope tile) is solid. Otherwise
-        if the neighboring tile does not exist or is not also flush the
+        if the neighboring side does not exist or is not also flush the
         edge is solid.
 
         In any other case the edge is not solid. If the tile sprite information
         matches its neighbor the edge is not visible. Otherwise
         `visible_callback` is called to determine if the edge is visible. If
-        `visible_callback` is not set this defaults to the edge being a
+        `visible_callback` is not set this defaults to the edge being visible
+        if it's a bototm or right edge.
         bottom or right edge.
 
         Arguments:
-            visible_callback (func(x: int, y: int, side: TileSide, tile: Tile, neighbor_tile: Tile) -> bool):
-                Callback used to determine if a given edge should be visible if
-                all other checks have passed. Typically this function should be
-                anti-symetric so that there are not overlapping visible edges.
+            visible_callback (Callable): Callback used to determine if a given
+                edge should be visible if all other checks have passed. Typically
+                this function should be anti-symetric so that there are not
+                overlapping visible edges. Called as
+                `visible_callback(x, y, side, tile, neighbor_tile)`.
         """
         # cw_index[side] gives the index of `side` when sides are listed in cw
         # order.
@@ -508,9 +475,12 @@ class Level:
 
         * Belong to a tile with the same sprite
         * Be the same side of the tile (i.e. ground edges don't connect to walls)
+        * Have a starting point equal to our edge's ending point
+        * Be in the same orientation as our edge
 
-        If there are multiple joining edges the one that moves the most in the
-        positive normal direction of the edge face should be selected.
+        If there are multiple joining edges the one that moves the most "away"
+        from our tile should be selected (when traversing clockwise the edge
+        that goes the most counter-clockwise and vice versa).
 
         If there is no joining edge the edge cap should be set to True and
         the edge angle should be zeroed. If there is a joining edge the edge

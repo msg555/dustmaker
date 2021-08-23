@@ -6,12 +6,12 @@ import argparse
 import sys
 
 from dustmaker import DFReader, DFWriter
+from dustmaker.transform import TxMatrix
 from dustmaker.cmd.common import (
     run_utility,
     CliUtility,
 )
 from dustmaker.level import LevelType
-from dustmaker.tile import matmul
 
 
 class Transform(CliUtility):
@@ -75,21 +75,17 @@ class Transform(CliUtility):
             level = reader.read_level()
 
         # Start out with the rotation matrix
-        times = args.rotate % 4
-        cs = [1, 0, -1, 0]
-        sn = [0, 1, 0, -1]
-        mat = [[cs[times], -sn[times], 0], [sn[times], cs[times], 0], [0, 0, 1]]
+        mat = TxMatrix.ROTATE[args.rotate % 4]
 
         # Perform the flips
         if args.vflip:
-            mat = matmul([[1, 0, 0], [0, -1, 0], [0, 0, 1]], mat)
+            mat = TxMatrix.VFLIP * mat
 
         if args.hflip:
-            mat = matmul([[-1, 0, 0], [0, 1, 0], [0, 0, 1]], mat)
+            mat = TxMatrix.HFLIP * mat
 
         # Add in the translations
-        mat[0][2] += args.translate_x
-        mat[1][2] += args.translate_y
+        mat = mat.translate(args.translate_x, args.translate_y)
 
         if args.upscale > 1:
             # Need dustmod level type for proper scaling of entities/props

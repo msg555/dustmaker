@@ -25,6 +25,7 @@ release = "0.4.0"
 add_module_names = False
 modindex_common_prefix = ["dustmaker."]
 autoclass_content = "both"
+autodoc_member_order = "bysource"
 
 
 # -- General configuration ---------------------------------------------------
@@ -35,6 +36,7 @@ autoclass_content = "both"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -4,9 +4,10 @@ object for each entity in Dustforce.
 """
 import copy
 import math
-from typing import cast, Dict, List, Optional, Tuple, Type, TypeVar
+from typing import cast, Dict, Optional, Tuple, Type, TypeVar
 
 from .enums import CameraNodeType
+from .transform import TxMatrix
 from .variable import (
     Variable,
     VariableArray,
@@ -18,7 +19,6 @@ from .variable import (
     VariableVec2,
 )
 
-TxMatrix = List[List[float]]
 T = TypeVar("T")
 
 
@@ -146,10 +146,8 @@ class Entity:
     def transform(self, mat: TxMatrix) -> None:
         """Generic transform implementation for entities. Some entity types may
         want to add additional functionality on top of this."""
-        angle = math.atan2(mat[1][1], mat[1][0]) - math.pi / 2
-        self.rotation = self.rotation - int(0x10000 * angle / math.pi / 2) & 0xFFFF
-
-        if mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0] < 0:
+        self.rotation = self.rotation - int(0x10000 * mat.angle / math.pi / 2) & 0xFFFF
+        if mat.flipped:
             self.flipY = not self.flipY
             self.rotation = -self.rotation & 0xFFFF
 
@@ -173,16 +171,15 @@ class CheckPoint(Entity):
 
     TYPE_IDENTIFIER = "check_point"
 
-    def transform(self, mat):
+    def transform(self, mat: TxMatrix) -> None:
         """Transform the trigger area"""
         super().transform(mat)
 
         areas = self.trigger_areas
         for i, pos in enumerate(areas):
-            areas[i] = (
-                pos[0] * mat[0][0] + pos[1] * mat[0][1],
-                pos[0] * mat[1][0] + pos[1] * mat[1][1],
-            )
+            # trigger_area locations are relative the entity itself so should
+            # not be sampled with offset.
+            areas[i] = mat.sample(*pos, with_offset=False)
 
     trigger_areas = bind_prop_arr("trigger_area", VariableVec2)
 
@@ -297,10 +294,9 @@ class DeathZone(Entity):
     def transform(self, mat: TxMatrix) -> None:
         """Transform the death zone width and height"""
         super().transform(mat)
-        w = self.width
-        h = self.height
-        self.width = abs(w * mat[0][0] + h * mat[0][1])
-        self.height = abs(w * mat[1][0] + h * mat[1][1])
+        tw, th = mat.sample(self.width, self.height, with_offset=False)
+        self.width = int(abs(tw))
+        self.height = int(abs(th))
 
     width = bind_prop("width", VariableInt, 0)
     height = bind_prop("height", VariableInt, 0)
@@ -322,10 +318,7 @@ class AIController(Entity):
 
         nodes = self.nodes
         for i, pos in enumerate(nodes):
-            nodes[i] = (
-                mat[0][2] + pos[0] * mat[0][0] + pos[1] * mat[0][1],
-                mat[1][2] + pos[0] * mat[1][0] + pos[1] * mat[1][1],
-            )
+            nodes[i] = mat.sample(*pos)
 
     nodes = bind_prop_arr("nodes", VariableVec2)
     node_wait_times = bind_prop_arr("nodes_wait_time", VariableInt)
@@ -347,7 +340,7 @@ class CameraNode(Entity):
     def transform(self, mat: TxMatrix) -> None:
         """Transform the camera zoom and width"""
         super().transform(mat)
-        scale = math.sqrt(abs(mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]))
+        scale = mat.scale
         self.zoom = int(round(self.zoom * scale))
         self.width = int(round(self.width * scale))
 
@@ -413,8 +406,7 @@ class EntityHittable(Entity):
     def transform(self, mat: TxMatrix) -> None:
         """Adjust the entity scale"""
         super().transform(mat)
-        scale = math.sqrt(abs(mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]))
-        self.scale = self.scale * scale
+        self.scale = self.scale * mat.scale
 
 
 class Enemy(EntityHittable):
@@ -651,10 +643,7 @@ class EnemyKey(Enemy):
         """Transform the last know coordinates."""
         super().transform(mat)
 
-        x = self.lastX
-        y = self.lastY
-        self.lastX = mat[0][2] + x * mat[0][0] + y * mat[0][1]
-        self.lastY = mat[1][2] + x * mat[1][0] + y * mat[1][1]
+        self.lastX, self.lastY = mat.sample(self.lastX, self.lastY)
 
     door = bind_prop("door", VariableUInt, 0, "ID of door entity")
     lastX = bind_prop("lastKnowX", VariableFloat, 0.0)

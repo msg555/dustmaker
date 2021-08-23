@@ -1,3 +1,4 @@
+.PHONY: format format-check pylint typecheck lint test docs
 PYTHON := python3
 
 format:
@@ -16,3 +17,6 @@ lint: format-check pylint typecheck
 
 test:
 	$(PYTHON) -m unittest discover -v tests/
+
+docs:
+	make -C docs html

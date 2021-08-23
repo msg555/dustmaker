@@ -5,29 +5,9 @@ import copy
 from dataclasses import dataclass
 from enum import IntEnum
 import math
-from typing import List, Generator, Optional, Tuple
+from typing import Generator, Optional, Tuple
 
-TxMatrix = List[List[float]]
-
-
-def matmul(lhs: TxMatrix, rhs: TxMatrix) -> TxMatrix:
-    """Multiply two matrixes. Intended for transformation matrixes but works
-    for general matrix multiplication.
-
-    Arguments:
-        lhs (TxMatrix): left matrix to multiply
-        rhs (TxMatrix): right matrix to multiply
-
-    Returns:
-        The multiplied matrix
-    """
-    return [
-        [
-            sum(lhs[i][k] * rhs[k][j] for k in range(len(lhs[0])))
-            for j in range(len(rhs[0]))
-        ]
-        for i in range(len(lhs))
-    ]
+from .transform import TxMatrix
 
 
 class TileSpriteSet(IntEnum):
@@ -44,7 +24,8 @@ class TileSpriteSet(IntEnum):
 
 
 class TileSide(IntEnum):
-    """Used to index the sides of a tile."""
+    """Used to index the sides of a tile. This is the indexing done by the
+    Dustforce engine itself."""
 
     TOP = 0
     BOTTOM = 1
@@ -54,7 +35,25 @@ class TileSide(IntEnum):
 
 @dataclass
 class TileEdgeData:
-    """Container class for data stored on each tile edge."""
+    """Data class for data stored on each tile edge. Many attributes are stored
+    as pairs of data to correspond to the two corners of the tile edge. These
+    corners are ordered clockwise around the tile (the tile should be on your
+    right as you traverse from the first to second corner).
+
+    Attributes:
+        solid (bool): Should this edge produce collisions
+        visible (bool): Is this edge visible
+        caps ((bool, bool)): Wether an edge cap should be drawn for each corner
+        angles ((int, int)): Edge join angle in degrees, should be in the range
+            -90 < angle < 90. Ignored if the corresponding cap flag is set.
+        filth_sprite_set (TileSpriteSet): Sprite set of dust or spikes on this edge.
+            Use `TileSpriteSet.NONE_0` to indicate no filth on this edge.
+        filth_spike (bool): If :attr:`filth_sprite_set` is not `TileSpriteSet.NONE_0`
+            this flag controls if there is dust or spikes on the edge.
+        filth_caps ((bool, bool)): Same as :attr:`caps` but for drawing filth
+            (dust/spikes) caps.
+        filth_angles ((int, int)): Same as :attr:`angles` but for filth join angles.
+    """
 
     solid: bool = False
     visible: bool = False
@@ -82,7 +81,9 @@ class TileShape(IntEnum):
     To determine the angle of a half, big, or small tile from its shape find
     its identifier in the wheel.  Imagine you were located at X and the +
     characters formed a circle around you; the angle of the tile would be
-    approximately the angle of the circle surface where its label is.::
+    approximately the angle of the circle surface where its label is.
+
+    ::
 
               +++++
            +7+     +3+
@@ -133,83 +134,62 @@ class TileShape(IntEnum):
 
 
 class Tile:
-    """Represents a single tile in a Dustforce level.  Positional information
-    is stored within Map and not in this Tile object.
+    """Represents a single tile in a Dustforce level. Positional information
+    (x, y, layer) is stored within the containing :class:`Level` and not in
+    the Tile object itself.
 
-    Fields
-      All "List" fields are of length 4 mapping tile sides to the particular
-      field value.
+    The constructor will by default create a square virtual tile with 4
+    zeroed (non-solid nor visible) edges.
 
-      shape: TileShape - The shape of this particular tile.
+    Attributes:
+        shape (TileShape): The shape of this particular tile.
+        tile_flags (3-bit int): Raw bitmask of flags from the Dustforce engine.
+            In practice this always seems to be 0x4 (which is set by default)
+            corresponding to just the "solid" flag set. In most cases you should
+            just ignore this flag. From the engine the definitions are:
 
-      tile_flags: 3 bit int
-        Bit 1 - "solid slope flag" (probably ignored)
-        Bit 2 - "visible flag" (probably ignored)
-        Bit 3 - solid flag
-
-      edge_bits: List[4 bit int] - These are the collision bits for each side
-          of the tile. From engine source:
-            Bit 0 - solid flag
-            Bit 1 - visible flag
-            Bit 2,3 - "2 bits for ends of each edge". These have been normalized
-                      to be in clockwise order relative the center of the tile.
-                      (i.e. for the top edge this is left, right bits)
-
-      edge_angles: List[Tuple[signed byte, signed byte]] - The angle of the side of each edge.
-          The edges for a side are listed in clockwise order relative the
-          center of the tile.
-
-      sprite_set: TileSpriteSet - The sprite set this tile comes from. (e.g.
-          forest, mansion)
-
-      sprite_tile: int - The index of the specific tile within this sprite set (e.g.
-          grass, dirt)
-
-      sprite_palette: int - The color variant of this tile.
-
-      filth_sprite_sets: List[TileSpriteSet] - Controls which sprite set that
-          filth/spikes attached to the edge come from (e.g. forest, mansion)
-
-      filth_spikes: List[bool] - Controls wether the filth is dust or spikes.
-
-      filth_angles: List[16 bit int] - Controls the draw angle of the
-          filth/spikes on the given edge.
-
-      filth_caps: List[2 bit int] - Dunno
-
-      For sprite_set, sprite_tile, and sprite_palette see
-      https://github.com/cmann1/PropUtils/tree/master/files/tiles_reference for
-      a visual respresentation to help you select which values you want.
+            * Bit 1 - "solid slope flag" (probably ignored)
+            * Bit 2 - "visible flag" (probably ignored)
+            * Bit 3 - solid flag
+        edge_data: List[TileEdgeData]: Edge data for each edge of the tile. This should always
+            be a list of length 4 regardless of the tile :attr:`shape`.
+        sprite_set (TileSpriteSet): The sprite set this tile comes from. (e.g.
+            forest, mansion)
+        sprite_tile (int): The index of the specific tile within this sprite set (e.g.
+            grass, dirt). Check https://github.com/cmann1/PropUtils/tree/master/files/tiles_reference
+            for a visual reference to get sprite index information.
+        sprite_palette (int): The color variant of this tile.
     """
 
     def __init__(
         self,
-        shape: TileShape,
+        shape: TileShape = TileShape.FULL,
         *,
         tile_flags: int = 0x4,
-        tile_data: Optional[bytes] = None,
-        dust_data: Optional[bytes] = None,
+        sprite_set: TileSpriteSet = TileSpriteSet.TUTORIAL,
+        sprite_tile: int = 1,
+        sprite_palette: int = 0,
+        _tile_data: Optional[bytes] = None,
+        _dust_data: Optional[bytes] = None,
     ) -> None:
-        """Initialize a vanilla virtual tile of the given shape."""
         self.shape = shape
         self.tile_flags = tile_flags
         self.edge_data = [TileEdgeData() for _ in TileSide]
-        self.sprite_set = TileSpriteSet.TUTORIAL
-        self.sprite_tile = 1
-        self.sprite_palette = 0
+        self.sprite_set = sprite_set
+        self.sprite_tile = sprite_tile
+        self.sprite_palette = sprite_palette
 
-        if tile_data is not None:
-            self._unpack_tile_data(tile_data)
-        if dust_data is not None:
-            self._unpack_dust_data(dust_data)
+        if _tile_data is not None:
+            self._unpack_tile_data(_tile_data)
+        if _dust_data is not None:
+            self._unpack_dust_data(_dust_data)
 
     def get_sprite_tuple(self) -> Tuple[TileSpriteSet, int, int]:
         """Convenience method for getting a tuple that describes the sprite
-        of a tile for easy sprite comparisons.
+        of a tile for easy sprite comparison and copying.
 
         Returns:
-            (sprite_set, sprite_tile, sprite_palette) (TileSpriteSet, int, int):
-                the sprite set, tile, and palette of this tile.
+            A three-tuple containing the sprite set, tile, and palette of this tile.
         """
         return self.sprite_set, self.sprite_tile, self.sprite_palette
 
@@ -225,11 +205,11 @@ class Tile:
 
     @property
     def sprite_path(self) -> str:
-        """Returns the palette index associated with this tile.  You may
-        retrieve the complete game sprites listing from
+        """Gives the path within the extracted sprite metadata to the tile sprite
+        currently selected. You may retrieve the complete game sprites listing from
         https://www.dropbox.com/s/jm37ew9p74olgca/sprites.zip?dl=0
         """
-        return "area/%s/tiles/tile%d_%d_0001.png" % (
+        return "area/{}/tiles/tile{}_{}_0001.png".format(
             self.sprite_set.name.lower(),
             self.sprite_tile,
             self.sprite_palette + 1,
@@ -242,23 +222,33 @@ class Tile:
         )
 
     def is_dustblock(self) -> bool:
-        """Returns true if the tile is a dustblock."""
-        return {
-            TileSpriteSet.MANSION: 21,
-            TileSpriteSet.FOREST: 13,
-            TileSpriteSet.CITY: 6,
-            TileSpriteSet.LABORATORY: 9,
-            TileSpriteSet.TUTORIAL: 2,
-        }.get(self.sprite_set, -1) == self.sprite_tile
+        """Returns true if the tile is a dustblock tile. This is calculated
+        based on the current sprite information."""
+        return SPRITE_SET_DUSTBLOCK_TILE[self.sprite_set] == self.sprite_tile
+
+    def set_dustblock(self) -> None:
+        """Update :attr:`sprite_tile` and :attr:`sprite_palette` to be the dustblock matching
+        the current :attr:`sprite_set`.
+
+        Raises:
+            ValueError: If there is no dustblock tile for the current sprite set.
+        """
+        sprite_tile = SPRITE_SET_DUSTBLOCK_TILE[self.sprite_set]
+        if sprite_tile == -1:
+            raise ValueError("current sprite set does not have a dustblock tile")
+        self.sprite_tile = sprite_tile
+        self.sprite_palette = 1
 
     def transform(self, mat: TxMatrix) -> None:
-        """
-        Performs a flip and rotation as dictated by the tranformation matrix.
-        Does not do any kind of scaling. Use upscale() if that behavior is
-        desired.
+        """Performs a flip and rotation as dictated by the tranformation matrix.
+        Does not do any kind of scaling or skewing beyond that. Use :meth:`upscale`
+        if you want to increase tile scale.
+
+        Attributes:
+            mat: The transformation matrix. See :meth:`dustmaker.level.Level.transform`
         """
         oshape = self.shape
-        flipped = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0] < 0
+        flipped = mat.flipped
         if flipped:
             # horizontally flip
             if self.shape == TileShape.FULL:
@@ -267,8 +257,17 @@ class Tile:
                     self.edge_data[TileSide.LEFT],
                 )
             elif self.shape <= TileShape.SMALL_8:
+                # No need to fix edge data order as SHAPE_ORDERED_SIDES uniquely
+                # maps the transformed sides to original sides.
                 self.shape = TileShape(1 + ((self.shape - TileShape.BIG_1) ^ 8) % 16)
             else:
+                # Flipping swaps clockwise direction so we do the same.
+                s1 = SHAPE_ORDERED_SIDES[self.shape][1]
+                s2 = SHAPE_ORDERED_SIDES[self.shape][2]
+                self.edge_data[s1], self.edge_data[s2] = (
+                    self.edge_data[s2],
+                    self.edge_data[s1],
+                )
                 self.shape = TileShape(17 + ((self.shape - TileShape.HALF_A) ^ 3))
 
             # flips swap clockwise to counterclockwise, reverse directed data
@@ -294,9 +293,7 @@ class Tile:
         else:
             self.shape = TileShape(17 + ((self.shape - TileShape.HALF_A) + angle) % 4)
 
-        og_edge_data = [
-            copy.deepcopy(self.edge_data[side]) for side in SHAPE_ORDERED_SIDES[oshape]
-        ]
+        og_edge_data = [self.edge_data[side] for side in SHAPE_ORDERED_SIDES[oshape]]
         self.edge_data = [TileEdgeData() for _ in TileSide]
 
         for i, side in enumerate(SHAPE_ORDERED_SIDES[self.shape]):
@@ -308,6 +305,12 @@ class Tile:
         """
         Upscales a tile, returning a list of (dx, dy, tile) tuples giving
         the relative position of the upscaled tiles and the new tile shape.
+        This is primarily used by :meth:`dustmaker.level.Level.upscale`.
+
+        Yields:
+            A three tuple (dx, dy, ntile) where (dx, dy) are the relative position
+            within the scaled up `factor` x `factor` tile square formed and
+            `ntile` is the tile that belongs at that position.
         """
         cw_index = (0, 2, 3, 1)
 
@@ -405,23 +408,21 @@ class Tile:
                 rots = new_shape - TileShape.HALF_A
 
             # Calculate rotation matrix and inverse
-            cs = (1, 0, -1, 0)
-            sn = (0, 1, 0, -1)
-            mat = [[cs[rots], sn[rots], 0], [-sn[rots], cs[rots], 0], [0, 0, 1]]
-            imat = [[cs[rots], -sn[rots], 0], [sn[rots], cs[rots], 0], [0, 0, 1]]
+            mat = TxMatrix.ROTATE[-rots % 4]
+            imat = TxMatrix.ROTATE[rots % 4]
 
             # Apply horizontal flip
             if hflip:
-                mat[0][0] *= -1
-                mat[1][0] *= -1
-                imat[0][0] *= -1
-                imat[0][1] *= -1
+                mat = mat * TxMatrix.HFLIP
+                imat = TxMatrix.HFLIP * imat
 
             # Fix up offset so transformed positions stay in upscale square.
-            for matrix in (mat, imat):
-                for row in matrix:
-                    if sum(row) < 0:
-                        row[2] += factor - 1
+            mat = mat.translate(
+                *(max(0, -val) for val in mat.sample(factor - 1, factor - 1))
+            )
+            imat = imat.translate(
+                *(max(0, -val) for val in imat.sample(factor - 1, factor - 1))
+            )
 
             # Copy tile and transform it.
             ntile = copy.deepcopy(self)
@@ -431,11 +432,8 @@ class Tile:
             # For each of the new upscaled tiles inverse the transformation.
             for dx, dy, tile in ntile.upscale(factor):
                 tile.transform(imat)  # type: ignore
-                yield (
-                    dx * imat[0][0] + dy * imat[0][1] + imat[0][2],
-                    dx * imat[1][0] + dy * imat[1][1] + imat[1][2],
-                    tile,
-                )
+                tx, ty = imat.sample(dx, dy)
+                yield (int(tx), int(ty), tile)
 
     def _pack_tile_data(self) -> bytes:
         """Pack the dustmaker respresentation back into the binary representation"""
@@ -555,8 +553,37 @@ class Tile:
                 edge.filth_angles = edge.filth_angles[::-1]
 
 
-# Full - Clockwise from top
-# Small/Big/Half - Clockwise from hyp. (ccw from mirrored)
+#: This is my data.
+#: :meta hide-value:
+MY_DATA = (5, 5, 5)
+
+
+#: Mapping of :class:`TileSpriteSet` to the corresponding dustblock index
+#: for that sprite set. :meta hide-value:
+SPRITE_SET_DUSTBLOCK_TILE = (
+    -1,  # NONE_0
+    21,  # MANSION
+    13,  # FOREST
+    6,  # CITY
+    9,  # LABORATORY
+    2,  # TUTORIAL
+    -1,  # NEXUS
+    -1,  # NONE_7
+)
+
+
+#: A mapping of :class:`TileShape` to a sequence of sides.
+#:
+#: For: :attr:`TileShape.FULL` this is ordered clockwise starting with
+#: the top side.
+#:
+#: For half tiles and small slants the ordering starts on the diagonal
+#: edge and procedes clockwise around the tile.
+#:
+#: For big slants the ordering starts on the diagonal, then the opposite
+#: side, then the flat side that's not present on the small slants. For
+#: BIG_1 through BIG_4 this is clockwise, for BIG_5 through BIG_8 this
+#: is counter-clockwise.
 SHAPE_ORDERED_SIDES = tuple(
     tuple(TileSide(x) for x in y)
     for y in (

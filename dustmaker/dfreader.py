@@ -172,7 +172,7 @@ class DFReader(BitIOReader):
                     level.tiles[(layer, xoffset + txpos, yoffset + typos)] = Tile(
                         TileShape(shape & 0x1F),
                         tile_flags=tile_flags,
-                        tile_data=data,
+                        _tile_data=data,
                     )
 
         if flags & 2:
