@@ -2,6 +2,7 @@
 Module defining the Dustforce variable representation
 """
 import abc
+import collections.abc
 from enum import IntEnum
 from typing import Any, Dict, List, Optional, Tuple, Type
 
@@ -9,19 +10,32 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 class VariableType(IntEnum):
     """Enumeration of Var type IDs."""
 
+    #: Special code used in the internal format. Null variables cannot be created.
     NULL = 0
     BOOL = 1
     INT = 2
     UINT = 3
     FLOAT = 4
+    #: Dustforce strings are actually byte arrays
     STRING = 5
+    #: Vec2 is a (float, float) tuple
     VEC2 = 10
+    #: Generic mapping/object type
     STRUCT = 14
     ARRAY = 15
 
 
 class Variable(metaclass=abc.ABCMeta):
-    """Represents a variable attached to a Dustforce object."""
+    """Variable base class. Variables are a mechanism Dustforce uses to make structure
+    metadata easily available to the game script. Variables will raise an `AssertionError`
+    if they are created with an invalid :attr:`value` attribute.
+
+    Variables support the equality and hashing interface.
+
+    Attributes:
+        value: The internal value of this variable. Its type will depend on the
+            actual variable type.
+    """
 
     _TYPES: Dict[VariableType, Type["Variable"]] = {}
     _vtype = VariableType.NULL
@@ -47,9 +61,10 @@ class Variable(metaclass=abc.ABCMeta):
         return hash((self._vtype, self.value))
 
     def assert_types(self) -> None:
-        """Checks if the value type matches the variable type.
+        """Checks if the type of :attr:`value` matches our concrete variable type.
 
-        :raises ValueError: value type and variable type do not agree
+        Raises:
+            ValueError: :attr:`value`'s type is invalid
         """
         try:
             self._assert_types()
@@ -66,7 +81,7 @@ class Variable(metaclass=abc.ABCMeta):
 
 
 class VariableBool(Variable):
-    """Bool variable"""
+    """Represents a boolean variable of type :class:`bool`."""
 
     _vtype = VariableType.BOOL
 
@@ -79,7 +94,7 @@ class VariableBool(Variable):
 
 
 class VariableInt(Variable):
-    """32-bit signed int variable"""
+    """Represents a 32-bit signed int variable of type :class:`int`."""
 
     _vtype = VariableType.INT
 
@@ -92,7 +107,7 @@ class VariableInt(Variable):
 
 
 class VariableUInt(Variable):
-    """32-bit unsigned int variable"""
+    """Represents a 32-bit unsigned int variable of type :class:`int`."""
 
     _vtype = VariableType.UINT
 
@@ -105,7 +120,7 @@ class VariableUInt(Variable):
 
 
 class VariableFloat(Variable):
-    """floating point variable"""
+    """Represents a floating point variable of type :class:`float`."""
 
     _vtype = VariableType.FLOAT
 
@@ -118,7 +133,7 @@ class VariableFloat(Variable):
 
 
 class VariableString(Variable):
-    """string (really, bytes) variable"""
+    """Represents a string variable of type :class:`bytes`."""
 
     _vtype = VariableType.STRING
 
@@ -131,7 +146,7 @@ class VariableString(Variable):
 
 
 class VariableVec2(Variable):
-    """vec2 (floating point pair) variable"""
+    """Represents a 2-dimensional vector of type `(float, float)`."""
 
     _vtype = VariableType.VEC2
 
@@ -149,7 +164,7 @@ class VariableVec2(Variable):
 
 
 class VariableStruct(Variable):
-    """struct variable"""
+    """Represents a struct (dictionary) mapping of type `dict[str, Variable]`."""
 
     _vtype = VariableType.STRUCT
 
@@ -164,8 +179,27 @@ class VariableStruct(Variable):
             val._assert_types()
 
 
-class VariableArray(Variable):
-    """array variable"""
+class VariableArray(Variable, collections.abc.MutableSequence):
+    """Represents an array variable. Arrays are stored a bit differently
+    because they must explicitly encode the type of their sub-elements
+    (heterogenous arrays are not allowed).
+
+    :class:`VariableArray` implements the :class:`collections.abc.MutableSequence`
+    interface, automatically boxing and unboxing accessed elements.
+
+    Arguments:
+
+        element_type (type[Variable]): Variable type of all elements
+        values (list[element_type]): Array of variables of type `element_type`
+
+    Attributes:
+
+        value (element_type, list[element_type]): A tuple containing the element
+            type and the element list. Prefer using :attr:`element_type` and
+            the :class:`MutableSequence` interface provided by VariableArray instead
+            of accessing these elements through :attr:`value`.
+
+    """
 
     _vtype = VariableType.ARRAY
 
@@ -176,42 +210,39 @@ class VariableArray(Variable):
 
     @property
     def element_type(self) -> Type[Variable]:
-        """Returns the element type of this array."""
+        """Element type of this array"""
         return self.value[0]
 
-    def clear(self):
-        """Forwards to clear on the underlying array"""
-        self.value[1].clear()
+    def _box(self, val):
+        """Helper method to box values in a Variable object. Basically just
+        VariableArray is weird.
+        """
+        etype = self.value[0]
+        if etype is VariableArray:
+            return etype(*val)
+        return etype(val)
 
-    # Forwards a bunch of methods of the underlying list.
+    # Implement the MutableMapping abstract methods by forwarding to the
+    # backing list. We unbox variables from their Variable packaging. This
+    # is a little weird with arrays where the unboxed type is a (type, list)
+    # tuple but works in principle.
+    def __getitem__(self, key):
+        return self.value[1][key].value
+
+    def __setitem__(self, key, val):
+        self.value[1][key] = self._box(val)
+
+    def __delitem__(self, key):
+        del self.value[1][key]
+
     def __len__(self):
         return len(self.value[1])
 
-    # We unbox variables from their Variable packaging. This doesn't work
-    # correctly for recursive types like element arrays or structs and you
-    # should not use these convenience methods on those types.
-    def append(self, x):
-        """Wrapper around list.append of the value"""
-        self.value[1].append(self.value[0](x))
-
-    def pop(self, i=-1):
-        """Wrapper around list.pop of the value"""
-        return self.value[1].pop(i).value
-
-    def __iter__(self):
-        return (x.value for x in self.value[1].__iter__())
-
-    def __getitem__(self, key):
-        return self.value[1].__getitem__(key).value
-
-    def __setitem__(self, key, val):
-        return self.value[1].__setitem__(key, self.value[0](val))
-
-    def __contains__(self, item):
-        return self.value[1].__contains__(item)
-
-    def __reversed__(self):
-        return self.value[1].__reversed__()
+    def insert(self, index, value):
+        """Impelements the :class:`MutableSequence.insert` interface by inserting
+        the boxed value into the backing variable list.
+        """
+        self.value[1].insert(index, self._box(value))
 
     def _assert_types(self) -> None:
         """Ensure value is tuple of type and list of variables."""

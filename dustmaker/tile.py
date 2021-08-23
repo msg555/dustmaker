@@ -138,6 +138,8 @@ class Tile:
     (x, y, layer) is stored within the containing :class:`Level` and not in
     the Tile object itself.
 
+    Tiles support the equality and hashing interface.
+
     The constructor will by default create a square virtual tile with 4
     zeroed (non-solid nor visible) edges.
 
@@ -183,6 +185,25 @@ class Tile:
             self._unpack_tile_data(_tile_data)
         if _dust_data is not None:
             self._unpack_dust_data(_dust_data)
+
+    def __eq__(self, oth):
+        if not isinstance(oth, Tile):
+            return False
+        return self._vals() == oth._vals()
+
+    def __hash__(self):
+        return hash(self._vals())
+
+    def _vals(self):
+        """Values used for __eq__ and __hash__"""
+        return (
+            self.shape,
+            self.tile_flags,
+            self.edge_data,
+            self.sprite_set,
+            self.sprite_tile,
+            self.sprite_palette,
+        )
 
     def get_sprite_tuple(self) -> Tuple[TileSpriteSet, int, int]:
         """Convenience method for getting a tuple that describes the sprite
@@ -312,7 +333,11 @@ class Tile:
             within the scaled up `factor` x `factor` tile square formed and
             `ntile` is the tile that belongs at that position.
         """
-        cw_index = (0, 2, 3, 1)
+        if factor < 1:
+            return
+        if factor == 1:
+            yield 0, 0, copy.deepcopy(self)
+            return
 
         def _tuple_set(data: Tuple, ind: int, value) -> Tuple:
             return tuple((value if i == ind else x) for i, x in enumerate(data))
@@ -323,7 +348,7 @@ class Tile:
             """
             edge_data = copy.deepcopy(self.edge_data[side])
 
-            cw_ind = cw_index[side]
+            cw_ind = SIDE_CLOCKWISE_INDEX[side]
             for dr in range(2):
                 vert_a = SHAPE_VERTEXES[tile.shape][(cw_ind + 1 - dr) & 0x3]
                 vert_b = SHAPE_VERTEXES[tile.shape][(cw_ind + dr) & 0x3]
@@ -553,13 +578,14 @@ class Tile:
                 edge.filth_angles = edge.filth_angles[::-1]
 
 
-#: This is my data.
-#: :meta hide-value:
-MY_DATA = (5, 5, 5)
-
-
 #: Mapping of :class:`TileSpriteSet` to the corresponding dustblock index
-#: for that sprite set. :meta hide-value:
+#: for that sprite set. Gives -1 if no dustblock tile is available for the
+#: given sprite set.
+#:
+#: Type:
+#:     tuple mapping :class:`TileSpriteSet` -> int
+#:
+#: :meta hide-value:
 SPRITE_SET_DUSTBLOCK_TILE = (
     -1,  # NONE_0
     21,  # MANSION
@@ -584,6 +610,11 @@ SPRITE_SET_DUSTBLOCK_TILE = (
 #: side, then the flat side that's not present on the small slants. For
 #: BIG_1 through BIG_4 this is clockwise, for BIG_5 through BIG_8 this
 #: is counter-clockwise.
+#:
+#: Type:
+#:     tuple mapping :class:`TileShape` -> (TileSide, ...)
+#:
+#: :meta hide-value:
 SHAPE_ORDERED_SIDES = tuple(
     tuple(TileSide(x) for x in y)
     for y in (
@@ -612,7 +643,14 @@ SHAPE_ORDERED_SIDES = tuple(
 )
 
 
-# top-left, top-right, bottom-right, bottom-left coordinates
+#: Mapping of :class:`TileShape` to the vertex coordinates of the tile in
+#: half-tile units. Vertexes are listed top-left, top-right, bottom-right,
+#: and bottom-left order.
+#:
+#: Type:
+#:     tuple mapping :class:`TileShape` -> ((int, int), (int, int), (int, int), (int, int))
+#:
+#: :meta hide-value:
 SHAPE_VERTEXES = (
     ((0, 0), (2, 0), (2, 2), (0, 2)),  # FULL
     # Slants are rotations of each other
@@ -641,7 +679,24 @@ SHAPE_VERTEXES = (
     ((0, 2), (2, 0), (2, 2), (0, 2)),  # HALF_D
 )
 
-# SIDE_CLOCKWISE_INDEX[side] gives
+
+#: Mapping of :class:`TileSide` to the index of that tile side when sides are
+#: listed in clockwise order. This is useful for computing the edge vertexes
+#: for a given side from :attr:`SHAPE_VERTEXES`.
+#:
+#: Type:
+#:     tuple mapping :class:`TileSide` -> int
+#:
+#: Examples:
+#:     ::
+#:
+#:         shape, side = TileShape.BIG_1, TileSide.TOP
+#:         ind = SIDE_CLOCKWISE_INDEX[side]
+#:         vert_a = SHAPE_VERTEXES[shape][ind]
+#:         vert_b = SHAPE_VERTEXES[shape][(ind + 1) % 4]
+#:         # vert_a = (0, 0), vert_b = (2, 1)
+#:
+#: :meta hide-value:
 SIDE_CLOCKWISE_INDEX = (
     0,  # TOP
     2,  # BOTTOM

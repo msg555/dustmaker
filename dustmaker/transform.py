@@ -61,9 +61,15 @@ class TxMatrix(tuple):
         return math.sqrt(abs(self.determinant))
 
     def __mul__(self, rhs: Union[float, "TxMatrix"]) -> "TxMatrix":
-        if isinstance(rhs, float):
+        if isinstance(rhs, (int, float)):
             # Multiply by a scalar
-            return TxMatrix((x * rhs for x in row) for row in self)
+            return TxMatrix(
+                (
+                    (self[0][0] * rhs, self[0][1] * rhs, self[0][2] * rhs),
+                    (self[1][0] * rhs, self[1][1] * rhs, self[1][2] * rhs),
+                    (0, 0, 1),
+                )
+            )
 
         # Matrix multiplication optimized for 2D affine matrixes.
         ml = self

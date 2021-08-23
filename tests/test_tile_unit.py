@@ -2,6 +2,7 @@
 Unit tests for tile module routines
 """
 import copy
+import itertools
 import random
 from typing import Dict
 import unittest
@@ -22,9 +23,9 @@ def rand_edge(rng: random.Random) -> TileEdgeData:
     return TileEdgeData(
         solid=rng.choice(abool),
         visible=rng.choice(abool),
-        caps=rng.choices(abool, k=2),
+        caps=tuple(rng.choices(abool, k=2)),
         angles=(rng.randint(-127, 127), rng.randint(-127, 127)),
-        filth_caps=rng.choices(abool, k=2),
+        filth_caps=tuple(rng.choices(abool, k=2)),
         filth_angles=(rng.randint(-127, 127), rng.randint(-127, 127)),
     )
 
@@ -380,3 +381,313 @@ class TestTileUnit(unittest.TestCase):
             TxMatrix.VFLIP,
             {TileSide.RIGHT: TileSide.RIGHT, TileSide.LEFT: TileSide.LEFT},
         )
+
+    def _assert_match(
+        self, tile: Tile, ntile: Tile, shape: TileShape, edge_caps: Dict[TileSide, int]
+    ) -> None:
+        """Check that ntile is of the expected shape and copies the expected
+        edges and caps from tile.
+        """
+        self.assertEqual(shape, ntile.shape)
+
+        null_edge = TileEdgeData()
+        for side in TileSide:
+            cap_dr = edge_caps.get(side)
+            nedge_data = ntile.edge_data[side]
+            if cap_dr is None:
+                self.assertEqual(null_edge, nedge_data)
+                continue
+
+            edge_data = tile.edge_data[side]
+            self.assertEqual(edge_data.solid, nedge_data.solid)
+            self.assertEqual(edge_data.visible, nedge_data.visible)
+            self.assertEqual(edge_data.filth_sprite_set, nedge_data.filth_sprite_set)
+            self.assertEqual(edge_data.filth_spike, nedge_data.filth_spike)
+
+            for dr in range(2):
+                if dr == cap_dr:
+                    self.assertEqual(edge_data.caps[dr], nedge_data.caps[dr])
+                    self.assertEqual(edge_data.angles[dr], nedge_data.angles[dr])
+                    self.assertEqual(
+                        edge_data.filth_caps[dr], nedge_data.filth_caps[dr]
+                    )
+                    self.assertEqual(
+                        edge_data.filth_angles[dr], nedge_data.filth_angles[dr]
+                    )
+                else:
+                    self.assertFalse(nedge_data.caps[dr])
+                    self.assertEqual(0, nedge_data.angles[dr])
+                    self.assertFalse(nedge_data.filth_caps[dr])
+                    self.assertEqual(0, nedge_data.filth_angles[dr])
+
+    @seeded_rand
+    def test_upscale_full(self, rng: random.Random):
+        """full upscale"""
+        tile = rand_tile(rng, TileShape.FULL)
+
+        # Base check factor < 1
+        upscale_list = list(tile.upscale(0))
+        self.assertFalse(upscale_list)
+
+        # Base check factor == 1
+        upscale_list = list(tile.upscale(1))
+        self.assertEqual((0, 0, tile), upscale_list[0])
+        self.assertIsNot(tile, upscale_list[0][2])
+
+        # factor == 2
+        upscale_list = list(tile.upscale(2))
+        self.assertEqual(4, len(upscale_list))
+        tile_map = {(dx, dy): ntile for dx, dy, ntile in upscale_list}
+
+        self._assert_match(
+            tile, tile_map[(0, 0)], TileShape.FULL, {TileSide.LEFT: 1, TileSide.TOP: 0}
+        )
+        self._assert_match(
+            tile, tile_map[(1, 0)], TileShape.FULL, {TileSide.RIGHT: 0, TileSide.TOP: 1}
+        )
+        self._assert_match(
+            tile,
+            tile_map[(1, 1)],
+            TileShape.FULL,
+            {TileSide.RIGHT: 1, TileSide.BOTTOM: 0},
+        )
+        self._assert_match(
+            tile,
+            tile_map[(0, 1)],
+            TileShape.FULL,
+            {TileSide.LEFT: 0, TileSide.BOTTOM: 1},
+        )
+
+        # factor == 3
+        upscale_list = list(tile.upscale(3))
+        self.assertEqual(9, len(upscale_list))
+        tile_map = {(dx, dy): ntile for dx, dy, ntile in upscale_list}
+
+        self._assert_match(
+            tile, tile_map[(0, 0)], TileShape.FULL, {TileSide.LEFT: 1, TileSide.TOP: 0}
+        )
+        self._assert_match(tile, tile_map[(1, 0)], TileShape.FULL, {TileSide.TOP: -1})
+        self._assert_match(
+            tile, tile_map[(2, 0)], TileShape.FULL, {TileSide.RIGHT: 0, TileSide.TOP: 1}
+        )
+        self._assert_match(tile, tile_map[(2, 1)], TileShape.FULL, {TileSide.RIGHT: -1})
+        self._assert_match(
+            tile,
+            tile_map[(2, 2)],
+            TileShape.FULL,
+            {TileSide.RIGHT: 1, TileSide.BOTTOM: 0},
+        )
+        self._assert_match(
+            tile, tile_map[(1, 2)], TileShape.FULL, {TileSide.BOTTOM: -1}
+        )
+        self._assert_match(
+            tile,
+            tile_map[(0, 2)],
+            TileShape.FULL,
+            {TileSide.LEFT: 0, TileSide.BOTTOM: 1},
+        )
+        self._assert_match(tile, tile_map[(0, 1)], TileShape.FULL, {TileSide.LEFT: -1})
+        self._assert_match(tile, tile_map[(1, 1)], TileShape.FULL, {})
+
+    @seeded_rand
+    def test_upscale_half(self, rng: random.Random):
+        """half upscale"""
+        tile = rand_tile(rng, TileShape.HALF_A)
+
+        for factor, rot in itertools.product((2, 3), range(4)):
+            ntile = copy.deepcopy(tile)
+            ntile.transform(TxMatrix.ROTATE[-rot % 4])
+            upscale_list = list(ntile.upscale(factor))
+
+            ox, oy = TxMatrix.ROTATE[rot].sample(factor - 1, factor - 1)
+            for i, (dx, dy, ntile) in enumerate(upscale_list):
+                tx, ty = TxMatrix.ROTATE[rot].sample(dx, dy)
+                ntile.transform(TxMatrix.ROTATE[rot])
+                upscale_list[i] = (tx + max(0, -ox), ty + max(0, -oy), ntile)
+            tile_map = {(dx, dy): ntile for dx, dy, ntile in upscale_list}
+
+            if factor == 2:
+                self.assertEqual(3, len(upscale_list))
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 0)],
+                    TileShape.HALF_A,
+                    {TileSide.LEFT: 1, TileSide.TOP: 0},
+                )
+                self._assert_match(
+                    tile,
+                    tile_map[(1, 1)],
+                    TileShape.HALF_A,
+                    {TileSide.TOP: 1, TileSide.BOTTOM: 0},
+                )
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 1)],
+                    TileShape.FULL,
+                    {TileSide.LEFT: 0, TileSide.BOTTOM: 1},
+                )
+            else:
+                self.assertEqual(6, len(upscale_list))
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 0)],
+                    TileShape.HALF_A,
+                    {TileSide.LEFT: 1, TileSide.TOP: 0},
+                )
+                self._assert_match(
+                    tile, tile_map[(1, 1)], TileShape.HALF_A, {TileSide.TOP: -1}
+                )
+                self._assert_match(
+                    tile,
+                    tile_map[(2, 2)],
+                    TileShape.HALF_A,
+                    {TileSide.BOTTOM: 0, TileSide.TOP: 1},
+                )
+                self._assert_match(
+                    tile, tile_map[(1, 2)], TileShape.FULL, {TileSide.BOTTOM: -1}
+                )
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 2)],
+                    TileShape.FULL,
+                    {TileSide.LEFT: 0, TileSide.BOTTOM: 1},
+                )
+                self._assert_match(
+                    tile, tile_map[(0, 1)], TileShape.FULL, {TileSide.LEFT: -1}
+                )
+
+    @seeded_rand
+    def test_upscale_big(self, rng: random.Random):
+        """big upscale"""
+        tile = rand_tile(rng, TileShape.BIG_1)
+
+        for flip, factor, rot in itertools.product((True, False), (2, 3), range(4)):
+            mat = (TxMatrix.HFLIP if flip else TxMatrix.IDENTITY) * TxMatrix.ROTATE[rot]
+            imat = TxMatrix.ROTATE[-rot % 4] * (
+                TxMatrix.HFLIP if flip else TxMatrix.IDENTITY
+            )
+
+            ntile = copy.deepcopy(tile)
+            ntile.transform(mat)
+            upscale_list = list(ntile.upscale(factor))
+
+            ox, oy = imat.sample(factor - 1, factor - 1)
+            for i, (dx, dy, ntile) in enumerate(upscale_list):
+                tx, ty = imat.sample(dx, dy)
+                ntile.transform(imat)
+                upscale_list[i] = (tx + max(0, -ox), ty + max(0, -oy), ntile)
+            tile_map = {(dx, dy): ntile for dx, dy, ntile in upscale_list}
+
+            if factor == 2:
+                self.assertEqual(4, len(upscale_list))
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 0)],
+                    TileShape.BIG_1,
+                    {TileSide.LEFT: 1, TileSide.TOP: 0},
+                )
+                self._assert_match(
+                    tile, tile_map[(1, 0)], TileShape.SMALL_1, {TileSide.TOP: 1}
+                )
+                self._assert_match(
+                    tile, tile_map[(1, 1)], TileShape.FULL, {TileSide.BOTTOM: 0}
+                )
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 1)],
+                    TileShape.FULL,
+                    {TileSide.LEFT: 0, TileSide.BOTTOM: 1},
+                )
+            else:
+                self.assertEqual(8, len(upscale_list))
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 0)],
+                    TileShape.BIG_1,
+                    {TileSide.LEFT: 1, TileSide.TOP: 0},
+                )
+                self._assert_match(
+                    tile, tile_map[(1, 0)], TileShape.SMALL_1, {TileSide.TOP: -1}
+                )
+                self._assert_match(
+                    tile, tile_map[(2, 1)], TileShape.BIG_1, {TileSide.TOP: 1}
+                )
+                self._assert_match(
+                    tile, tile_map[(2, 2)], TileShape.FULL, {TileSide.BOTTOM: 0}
+                )
+                self._assert_match(
+                    tile, tile_map[(1, 2)], TileShape.FULL, {TileSide.BOTTOM: -1}
+                )
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 2)],
+                    TileShape.FULL,
+                    {TileSide.LEFT: 0, TileSide.BOTTOM: 1},
+                )
+                self._assert_match(
+                    tile, tile_map[(0, 1)], TileShape.FULL, {TileSide.LEFT: -1}
+                )
+                self._assert_match(tile, tile_map[(1, 1)], TileShape.FULL, {})
+
+    @seeded_rand
+    def test_upscale_small(self, rng: random.Random):
+        """small upscale"""
+        tile = rand_tile(rng, TileShape.SMALL_1)
+
+        for flip, factor, rot in itertools.product((True, False), (2, 3), range(4)):
+            mat = (TxMatrix.HFLIP if flip else TxMatrix.IDENTITY) * TxMatrix.ROTATE[rot]
+            imat = TxMatrix.ROTATE[-rot % 4] * (
+                TxMatrix.HFLIP if flip else TxMatrix.IDENTITY
+            )
+
+            ntile = copy.deepcopy(tile)
+            ntile.transform(mat)
+            upscale_list = list(ntile.upscale(factor))
+
+            ox, oy = imat.sample(factor - 1, factor - 1)
+            for i, (dx, dy, ntile) in enumerate(upscale_list):
+                tx, ty = imat.sample(dx, dy)
+                ntile.transform(imat)
+                upscale_list[i] = (tx + max(0, -ox), ty + max(0, -oy), ntile)
+            tile_map = {(dx, dy): ntile for dx, dy, ntile in upscale_list}
+
+            if factor == 2:
+                self.assertEqual(2, len(upscale_list))
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 1)],
+                    TileShape.BIG_1,
+                    {TileSide.TOP: 0, TileSide.BOTTOM: 1},
+                )
+                self._assert_match(
+                    tile,
+                    tile_map[(1, 1)],
+                    TileShape.SMALL_1,
+                    {TileSide.TOP: 1, TileSide.BOTTOM: 0},
+                )
+            else:
+                self.assertEqual(4, len(upscale_list))
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 1)],
+                    TileShape.SMALL_1,
+                    {TileSide.TOP: 0},
+                )
+                self._assert_match(
+                    tile,
+                    tile_map[(1, 2)],
+                    TileShape.BIG_1,
+                    {TileSide.TOP: -1, TileSide.BOTTOM: -1},
+                )
+                self._assert_match(
+                    tile,
+                    tile_map[(2, 2)],
+                    TileShape.SMALL_1,
+                    {TileSide.TOP: 1, TileSide.BOTTOM: 0},
+                )
+                self._assert_match(
+                    tile,
+                    tile_map[(0, 2)],
+                    TileShape.FULL,
+                    {TileSide.BOTTOM: 1},
+                )

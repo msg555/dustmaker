@@ -17,6 +17,7 @@ from .tile import (
     TileSide,
     TileSpriteSet,
     SHAPE_VERTEXES,
+    SIDE_CLOCKWISE_INDEX,
 )
 from .transform import TxMatrix
 from .variable import Variable, VariableBool, VariableInt, VariableString
@@ -397,9 +398,6 @@ class Level:
                 overlapping visible edges. Called as
                 `visible_callback(x, y, side, tile, neighbor_tile)`.
         """
-        # cw_index[side] gives the index of `side` when sides are listed in cw
-        # order.
-        cw_index = (0, 2, 3, 1)
         neighbor_dir = ((0, -1), (0, 1), (-1, 0), (1, 0))
 
         @functools.lru_cache(maxsize=None)
@@ -409,7 +407,7 @@ class Level:
             Returns:
                 (exists: bool, flush: bool)
             """
-            ind = cw_index[side]
+            ind = SIDE_CLOCKWISE_INDEX[side]
             vert_a = SHAPE_VERTEXES[shape][ind]
             vert_b = SHAPE_VERTEXES[shape][(ind + 1) & 0x3]
 
@@ -494,7 +492,6 @@ class Level:
         True and filth angle to 0. Otherwise the filth cap should be False and
         the filth angle should match the edge angle.
         """
-        cw_index = (0, 2, 3, 1)
         for (layer, x, y), tile in self.tiles.items():
             for side, edge_data in zip(TileSide, tile.edge_data):
                 if not edge_data.visible:
@@ -514,7 +511,7 @@ class Level:
                 filth_angles = [0, 0]
 
                 for dr in range(2):
-                    cw_ind = cw_index[side]
+                    cw_ind = SIDE_CLOCKWISE_INDEX[side]
                     vert_a = SHAPE_VERTEXES[tile.shape][(cw_ind + 1 - dr) & 0x3]
                     vert_b = SHAPE_VERTEXES[tile.shape][(cw_ind + dr) & 0x3]
 
