@@ -8,7 +8,7 @@ Documentation
 -------------
 
 Documentation can be found at
-[https://readthedocs.org/projects/dustmaker/](https://readthedocs.org/projects/dustmaker/).
+[https://dustmaker.readthedocs.io/en/latest/](https://dustmaker.readthedocs.io/en/latest/).
 
 Installation
 ------------
