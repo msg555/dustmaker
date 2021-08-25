@@ -1,13 +1,14 @@
 Dustmaker
 =========
 
-Dustmaker is a python3 library (only, at the moment) for read, manipulating, and
-writing Dustforce level files.
+Dustmaker is a Python library for reading, manipulation, and writing
+binary files used by Dustforce, primarily level files.
 
 Documentation
 -------------
 
-[http://dustkid.com/static/dustmaker/index.html](http://dustkid.com/static/dustmaker/index.html)
+Documentation can be found at
+[https://readthedocs.org/projects/dustmaker/](https://readthedocs.org/projects/dustmaker/).
 
 Installation
 ------------
@@ -18,29 +19,44 @@ or
 
     python3 -m pip install dustmaker
 
-Creating A Map From Scratch
+Example: Creating a new level from scratch
 ---------------------------
 
-    from dustmaker import write_map, Map, Tile, TileShape
+```python
+from dustmaker.level import Level
+from dustmaker.tile import Tile, TileShape
+from dustmaker.dfwriter import DFWriter
 
-    map = Map()
-    map.start_position((0, 0))
-    map.virtual_character(True)
-    for (i, shape) in enumerate(TileShape):
-      map.add_tile(19, 2 * i, 1, Tile(shape))
-    map.name("Test Map")
+# Create a new empty level and add some tiles.
+level = Level()
+level.name = b"my level!"
+level.virtual_character = True
+for i, shape in enumerate(TileShape):
+    level.tiles[(19, 2 * i, i)] = Tile(shape)
 
-    f_out = "/home/msg555/.HitboxTeam/Dustforce/user/level_src/testmap"
+# Automatically figure out edge solidity and connectivity flags
+level.calculate_edge_visibility()
+level.calculate_edge_caps()
 
-    with open(f_out, "wb") as f:
-      f.write(write_map(map))
+# Write level to a file
+with DFWriter(open("mylevel.dflevel", "wb")) as writer:
+    writer.write_level(level)
+```
 
-
-Reading in an existing map
+Example: Counting how many apples are in a level
 --------------------------
 
-    from dustmaker import read_map
+```python
+from dustmaker.dfreader import DFReader
+from dustmaker.entity import Apple
 
-    f_in = "/home/msg555/Dustforce/content/levels2/downhill"
-    with open(f_in, "rb") as f:
-      map = read_map(f.read())
+with DFReader(open("mylevel.dflevel", "rb")) as reader:
+    level = reader.read_level()
+
+apples = 0
+for x, y, entity in level.entities.values():
+    if isinstance(entity, Apple):
+        apples += 1
+
+print(f"Level has {apples} apples")
+```

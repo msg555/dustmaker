@@ -64,18 +64,14 @@ class PlayerPosition:
         self._x = bind_prop(f"p{player}_x", VariableInt, 0)
         self._y = bind_prop(f"p{player}_y", VariableInt, 0)
 
-    x = _LateBoundDescriptor("_x", "(int): Player start x-coordinate in pixels")
-    y = _LateBoundDescriptor("_y", "(int): Player start y-coordinate in pixels")
+    x = _LateBoundDescriptor("_x", "int: Player start x-coordinate in pixels")
+    y = _LateBoundDescriptor("_y", "int: Player start y-coordinate in pixels")
 
 
 class Level:
     """Represents a Dustforce level/map or the backdrop to its `parent` level. If
     this is a backdrop then :attr:`parent` will be set to the parent
     :class:`Level` object.
-
-    Args:
-        parent (:obj:`Level`, optional): If this level represents a backdrop this is the
-            containing level. Typical usage should not need to use this parameter.
 
     Attributes:
         parent (Level, optional): For backdrops this is the containing level.
@@ -132,7 +128,7 @@ class Level:
         "level_type",
         VariableInt,
         LevelType.NORMAL,
-        "level type of the level (see LevelType enum)",
+        "Level type of the level, see :class:`LevelType` enum.",
     )
     dustmod_version = bind_prop("dustmod_version", VariableString, b"")
 
@@ -226,7 +222,7 @@ class Level:
             min_id (int, optional): The minimum ID to assign to a prop or entity.
 
         Warning:
-            Dustmaker has no way to remap entity IDs in script persist data.
+            Dustmaker has no way to automatically remap entity IDs in script persist data.
         """
         self._next_id = min_id
 
@@ -295,7 +291,8 @@ class Level:
                 `mat = [[xx, xy, ox], [yx, yy, oy], [0, 0, 1]]`.
 
         Warning:
-            Dustmaker has no way to transform positional data in script persist data.
+            Dustmaker has no way to automatically transform positional data in
+            script persist data.
         """
 
         def _transform_tiles():
@@ -453,7 +450,7 @@ class Level:
                 else:
                     edat.visible = visible_callback(x, y, side, tile, ntile)
 
-    def calculate_edge_cap_angles(self) -> None:
+    def calculate_edge_caps(self) -> None:
         """Calculates edge/filth cap flags and angles. This should be called
         after all edge visibilty has been determined (see
         :meth:`calculate_edge_visibility`).

@@ -1,15 +1,33 @@
-"""
-Module containing dustmaker's prop representation
-"""
+""" Module containing dustmaker's prop representation.  """
 import math
-from typing import List
 
-TxMatrix = List[List[float]]
+from .transform import TxMatrix
 
 
 class Prop:
-    """
-    Class respresenting a static prop in a map.
+    """Class respresenting a static prop in a map.
+
+    To find appropriate values for :attr:`prop_set`, :attr:`prop_group`, and
+    :attr:`prop_index` check out
+    https://github.com/cmann1/PropUtils/tree/master/files/prop_reference.
+
+    Attributes:
+        layer_sub (int): The sublayer the prop is rendered on. Note that the prop
+            layer is actually stored within the containing
+            :class:`dustmaker.level.Level` itself.
+        rotation (16-bit uint): Clockwise rotation of the prop ranging from 0 to 0xFFFF.
+            0x4000 corresponds to a 90 degree rotation, 0x8000 to 180 degrees, 0xC000
+            to 270 degrees. This rotation is logically applied after any flips have
+            been applied.
+        flip_x (bool): Flip the prop horizontally
+        flip_y (bool): Flip the prop vertically
+        scale (float): Prop scaling factor. This is only available in `LevelType.DUSTMOD`
+            type maps and is fairly coarse in the resolution of the scaling factor.
+        prop_set (int): Identifier indicating what prop set this prop comes from. This
+            appears to match :class:`dustmaker.tile.TileSpriteSet`.
+        prop_group (int): Identifier indicating what prop group this prop comes from.
+        prop_index (int): Index of the desired prop sprite.
+        palette (int): The colour variant of the prop to render.
     """
 
     def __init__(
@@ -36,13 +54,10 @@ class Prop:
 
     def transform(self, mat: TxMatrix) -> None:
         """
-        Performs the requested transformation on the prop's position/scaling.
+        Performs the requested transformation on the prop's :attr:`rotation` and
+        :attr:`flip_y` attributes.
         """
-        angle = math.atan2(mat[1][1], mat[1][0]) - math.pi / 2
-        self.rotation = self.rotation - int(0x10000 * angle / math.pi / 2) & 0xFFFF
-
-        det = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]
-        self.scale *= math.sqrt(abs(det))
-        if det < 0:
-            self.flip_x = not self.flip_x
+        self.rotation = self.rotation - int(0x10000 * mat.angle / math.pi / 2) & 0xFFFF
+        if mat.flipped:
+            self.flip_y = not self.flip_y
             self.rotation = -self.rotation & 0xFFFF

@@ -2,7 +2,6 @@
 Module providing methods for write Dustforce binary formats including level
 files.
 """
-import functools
 import io
 from math import floor, log
 from typing import Dict, Iterable, List, Tuple, Union
@@ -26,7 +25,7 @@ from .variable import (
 )
 
 
-class LevelSegment:
+class _LevelSegment:
     """Container class with raw information about a segment"""
 
     def __init__(self):
@@ -36,15 +35,15 @@ class LevelSegment:
         self.present = True
 
 
-class LevelRegion:
+class _LevelRegion:
     """Container class for region data"""
 
     def __init__(self):
         self.segment_map = {}
-        self.backdrop = LevelSegment()
+        self.backdrop = _LevelSegment()
         self.backdrop.present = False
 
-    def get_segment(self, x: int, y: int) -> LevelSegment:
+    def get_segment(self, x: int, y: int) -> _LevelSegment:
         """Return the segment at the given coordinate within this region"""
         seg_key = ((x // 16) & 0xF, (y // 16) & 0xF)
 
@@ -52,35 +51,36 @@ class LevelRegion:
         if seg is not None:
             return seg
 
-        seg = LevelSegment()
+        seg = _LevelSegment()
         self.segment_map[seg_key] = seg
         return seg
 
 
-class RegionMap:
-    """Container class for region/segment information"""
+class _RegionMap:
+    """Container class for region/segment information."""
 
     def __init__(self):
         self.region_map = {}
 
-    def get_region(self, x: int, y: int) -> LevelRegion:
+    def get_region(self, x: int, y: int) -> _LevelRegion:
         """Return the region at the given coordinate"""
         reg_ky = (x // 256, y // 256)
         reg = self.region_map.get(reg_ky)
         if reg is not None:
             return reg
 
-        reg = LevelRegion()
+        reg = _LevelRegion()
         self.region_map[reg_ky] = reg
         return reg
 
-    def get_segment(self, x: int, y: int) -> LevelSegment:
+    def get_segment(self, x: int, y: int) -> _LevelSegment:
         """Return the segment at the given coordinate"""
         return self.get_region(x, y).get_segment(x, y)
 
     def get_region_keys(self) -> List[Tuple[int, int]]:
         """Return a list of the region keys sorted in the order required by the
-        Dustforce level format."""
+        Dustforce level format.
+        """
 
         def norm_for_sort(coord):
             """Do some stuff to order regions correctly"""
@@ -95,12 +95,12 @@ class RegionMap:
         return sorted(self.region_map, key=norm_for_sort)
 
 
-def compute_region_map(level: Level) -> RegionMap:
+def _compute_region_map(level: Level) -> _RegionMap:
     """Constructs a region map based on the passed level file. This
     structure separates all the tiles/props/entities into their respective
     regions as is used in the underlying binary representation.
     """
-    rmap = RegionMap()
+    rmap = _RegionMap()
     for (layer, tx, ty), tile in level.tiles.items():
         rmap.get_segment(tx, ty).tiles[layer].append((tx & 0xF, ty & 0xF, tile))
 
@@ -134,7 +134,13 @@ class DFWriter(BitIOWriter):
     """Helper class to write Dustforce binary files"""
 
     def write_float(self, ibits: int, fbits: int, val: float) -> None:
-        """Write a float to the output stream"""
+        """Write a float `val` to the output stream
+
+        Arguments:
+            ibits (int): Number of integer bits
+            fbits (int): Number of fractional bits
+            val (float): The floating point number to write
+        """
         ipart = abs(floor(val))
         fpart = int((val - floor(val)) * (2 ** (fbits - 1)))
         self.write(1, 1 if val < 0 else 0)
@@ -142,7 +148,17 @@ class DFWriter(BitIOWriter):
         self.write(fbits, fpart)
 
     def write_6bit_str(self, text: str) -> None:
-        """Write a '6-bit' string to the output stream"""
+        """Write a '6-bit' string. These are strings with length between
+        0 and 63 inclusive that contain only alpha-numeric lower and uppercase
+        characters in addition to '_' and '{'.
+
+        Raises:
+            ValueError: If length of string exceeds 63
+            ValueError: If invalid character is present
+        """
+        if len(text) > 63:
+            raise ValueError("6-bit str too long")
+
         self.write(6, len(text))
         for ch in text:
             v = ord(ch)
@@ -154,11 +170,29 @@ class DFWriter(BitIOWriter):
                 self.write(6, v - ord("a") + 37)
             elif ch == "_":
                 self.write(6, 36)
-            else:
+            elif ch == "{":
                 self.write(6, 63)
+            else:
+                raise ValueError("invalid character in 6-bit string")
 
-    def write_var_type(self, var: Variable, allow_continuation=True) -> None:
-        """Write a variable to the output stream"""
+    def write_variable(self, var: Variable) -> None:
+        """Write a variable to the output stream. This does not write the
+        type of the variable, that will need to be encoded somewhere else if
+        needed.
+
+        Arguments:
+            var (Variable): The variable to write to the stream.
+
+        Raises:
+            ValueError: If a VariableString value is longer than 65535 bytes.
+                Note that structs and arrays each handle their string sub-elements
+                in a way that they may be longer than this limit.
+            ValueError: If a VariableArray has more than 65535 elements including
+                any continuations if the element type is VariableString.
+            LevelParseException: If `var` is of unknown variable type.
+        """
+        max_width = (1 << 16) - 1
+
         value = var.value
         if isinstance(var, VariableBool):
             self.write(1, 1 if value else 0)
@@ -171,17 +205,11 @@ class DFWriter(BitIOWriter):
             return
 
         if isinstance(var, VariableString):
-            width = (1 << 16) - 1
-            for i in range(0, 1 + len(value) // width):
-                if i > 0:
-                    if not allow_continuation:
-                        break
-                    self.write(4, var._vtype)
-                    self.write_6bit_str("ctn")
-                vs = value[i * width : (i + 1) * width]
+            if len(var.value) > max_width:
+                raise ValueError("VariableString length too long")
 
-                self.write(16, len(vs))
-                self.write_bytes(vs)
+            self.write(16, len(var.value))
+            self.write_bytes(var.value)
             return
 
         if isinstance(var, VariableVec2):
@@ -190,45 +218,53 @@ class DFWriter(BitIOWriter):
             return
 
         if isinstance(var, VariableArray):
-            atype = value[0]
-            arr = value[1]
+            atype, arr = value
             arrlen = len(arr)
-            width = (1 << 16) - 1
-            if atype == VariableType.STRING:
+            if atype is VariableString:
                 for x in arr:
-                    arrlen += len(x.value) // width
+                    arrlen += len(x.value) // max_width
+            if arrlen > max_width:
+                raise ValueError("VariableArray length too long")
+
             self.write(4, atype._vtype)
             self.write(16, arrlen)
-            for x in arr:
-                if atype == VariableType.STRING:
+            if atype is not VariableString:
+                for x in arr:
+                    self.write_variable(x)
+            else:
+                for x in arr:
+                    # Write array continuations
                     xs = x.value
-                    for i in range(0, 1 + len(xs) // width):
-                        self.write_var_type(
-                            VariableString(xs[i * width : (i + 1) * width]), False
+                    for i in range(0, 1 + len(xs) // max_width):
+                        self.write_variable(
+                            VariableString(xs[i * max_width : (i + 1) * max_width])
                         )
-                else:
-                    self.write_var_type(x)
             return
 
         if isinstance(var, VariableStruct):
-            self.write_var_map(value)
+            for elem_key, elem_var in var.value.items():
+                if not isinstance(elem_var, VariableString):
+                    self.write(4, elem_var._vtype)
+                    self.write_6bit_str(elem_key)
+                    self.write_variable(elem_var)
+                    continue
+
+                # Write struct string continuations
+                xs = elem_var.value
+                for i in range(0, 1 + len(xs) // max_width):
+                    self.write(4, elem_var._vtype)
+                    self.write_6bit_str(elem_key)
+                    self.write_variable(
+                        VariableString(xs[i * max_width : (i + 1) * max_width])
+                    )
+
+            self.write(4, VariableType.NULL)
+
             return
 
         raise LevelParseException("unknown var type")
 
-    def write_var(self, key: str, var: Variable) -> None:
-        """Write a named variable to the output stream"""
-        self.write(4, var._vtype)
-        self.write_6bit_str(key)
-        self.write_var_type(var)
-
-    def write_var_map(self, variables: Dict[str, Variable]) -> None:
-        """Write a variable map to the output stream"""
-        for key, var in variables.items():
-            self.write_var(key, var)
-        self.write(4, VariableType.NULL)
-
-    def write_segment(self, seg_x: int, seg_y: int, segment: LevelSegment) -> None:
+    def _write_segment(self, seg_x: int, seg_y: int, segment: _LevelSegment) -> None:
         """Write a segment to the output stream"""
         assert self.aligned()
 
@@ -329,10 +365,10 @@ class DFWriter(BitIOWriter):
                 self.write_float(32, 8, y)
                 self.write(16, entity.rotation)
                 self.write(8, entity.layer)
-                self.write(1, 0 if entity.flipX else 1)
-                self.write(1, 0 if entity.flipY else 1)
+                self.write(1, 0 if entity.flip_x else 1)
+                self.write(1, 0 if entity.flip_y else 1)
                 self.write(1, 1 if entity.visible else 0)
-                self.write_var_map(entity.variables)
+                self.write_variable(VariableStruct(entity.variables))
 
             extra_names_writer.align()
             entity_names_pos = self.bit_tell()
@@ -361,14 +397,14 @@ class DFWriter(BitIOWriter):
         self.write(32, flags)
         self.bit_seek(end_index)
 
-    def write_region(self, x: int, y: int, region: LevelRegion) -> None:
+    def _write_region(self, x: int, y: int, region: _LevelRegion) -> None:
         """Writes a level region to the output stream"""
         segments_io = io.BytesIO()
         with DFWriter(segments_io) as segments_writer:
             for coord, segment in sorted(region.segment_map.items()):
-                segments_writer.write_segment(coord[0], coord[1], segment)
+                segments_writer._write_segment(coord[0], coord[1], segment)
             if region.backdrop.present:
-                segments_writer.write_segment(0, 0, region.backdrop)
+                segments_writer._write_segment(0, 0, region.backdrop)
             uncompressed_data = segments_io.getvalue()
 
         compressed_data = zlib.compress(uncompressed_data)
@@ -383,9 +419,9 @@ class DFWriter(BitIOWriter):
         self.write_bytes(compressed_data)
 
     # Should match the number of bits written by write_metadata
-    METADATA_BIT_SIZE = 224
+    _METADATA_BIT_SIZE = 224
 
-    def write_metadata(self, level: Level) -> None:
+    def _write_metadata(self, level: Level) -> None:
         """Write a level metadata block to the output stream."""
         self.write_bytes(b"DF_MTD")
         self.write(16, 4)
@@ -396,13 +432,19 @@ class DFWriter(BitIOWriter):
         self.write(32, 0)
 
     def write_var_file(self, header: bytes, var_data: Dict[str, Variable]) -> None:
-        """Write a var file to the output stream"""
+        """Writes a variable mapping with a given header. There are several
+        file types that Dustforce use that are expressed this way including
+        notably "stats1" (header=b"DF_STA") and "config" (header=b"DF_CFG").
+
+        Arguments:
+            header (bytes): The file header at the start of the stream.
+        """
         assert self.aligned()
 
         start_index = self.bit_tell()
         self.bit_seek(start_index + 8 * len(header) + 48)
 
-        self.write_var_map(var_data)
+        self.write_variable(VariableStruct(var_data))
         self.align()
         end_index = self.bit_tell()
 
@@ -419,18 +461,22 @@ class DFWriter(BitIOWriter):
         region_offsets: List[int],
         region_data: Union[bytes, Iterable[bytes]],
     ) -> None:
-        """
+        """Extended version of :meth:`write_level`.
+
         Writes `level` to the output stream. This is the advanced API for
-        efficiently modifiying level metadata. If region_offsets is non-empty
+        efficiently modifiying level metadata. If `region_offsets` is non-empty
         this will use `region_offsets` and `region_data` to populate the region
-        data section of the output rather than calculating it from `level`. See
-        :meth:`write_level` for the standard API.
+        data section of the output rather than calculating it from `level`.
+
+        See :meth:`dustmaker.dfreader.DFReader.read_level_ex` for examples
+        on how to use this in practice.
 
         Arguments:
             level (Level): The level file to write
             region_offsets (list[int]): Region offset metadata as returned by
                 :meth:`DFReader.read_level_ex`. If empty this behaves the same
-                as :meth:`write_level`.
+                as :meth:`write_level`. If you wish to omit all region data pass
+                `[0]` instead.
             region_data: (bytes | Iterable[bytes]): Bytes data (or an iterable
                 of bytes data) to write in the region section of the map. If
                 `region_offsets` is empty this argument is ignored.
@@ -438,12 +484,12 @@ class DFWriter(BitIOWriter):
         assert self.aligned()
 
         start_index = self.bit_tell()
-        header_size = 160 + self.METADATA_BIT_SIZE + len(level.sshot) * 8
+        header_size = 160 + self._METADATA_BIT_SIZE + len(level.sshot) * 8
 
         self.bit_seek(start_index + header_size)
 
         # Write variable mapping and record size
-        self.write_var_map(level.variables)
+        self.write_variable(VariableStruct(level.variables))
 
         # Skip over the region directory for now
         if region_offsets:
@@ -459,7 +505,7 @@ class DFWriter(BitIOWriter):
         self.write(16, 44)
         self.write(32, (end_index - start_index) // 8)
         self.write(32, num_regions)
-        self.write_metadata(level)
+        self._write_metadata(level)
         self.write(32, len(level.sshot))
         self.write_bytes(level.sshot)
         self.bit_seek(end_index)
@@ -497,7 +543,7 @@ class DFWriter(BitIOWriter):
         Returns:
             The ending bit index.
         """
-        rmap = compute_region_map(level)
+        rmap = _compute_region_map(level)
         region_dir_index = self.bit_tell()
         region_data_index = (region_dir_index + 32 * len(rmap.region_map) + 7) & ~0x7
         self.bit_seek(region_data_index)
@@ -507,7 +553,7 @@ class DFWriter(BitIOWriter):
         for rx, ry in rmap.get_region_keys():
             self.align()
             region_offsets.append((self.bit_tell() - region_data_index) // 8)
-            self.write_region(rx, ry, rmap.region_map[(rx, ry)])
+            self._write_region(rx, ry, rmap.region_map[(rx, ry)])
 
         end_index = self.bit_tell()
 
@@ -522,24 +568,24 @@ class DFWriter(BitIOWriter):
         return len(rmap.region_map), end_index
 
     def write_level(self, level: Level) -> None:
-        """Writes `level` to the output stream.
+        """Writes `level` to the output stream. This is equivalent to
+        `write_level_ex(level, [], b"")`.
 
         Arguments:
             level (Level): The level file to write
         """
         self.write_level_ex(level, [], b"")
 
-    write_stat_file = functools.partial(write_var_file, header=b"DF_STA")
-    write_config_file = functools.partial(write_var_file, header=b"DF_CFG")
-    write_fog_file = functools.partial(write_var_file, header=b"DF_FOG")
-
 
 def write_level(level: Level) -> bytes:
-    """Convenience method to write a map file and return the written bytes."""
+    """Convenience function to write a map file directly to bytes in memory.
+
+    Arguments:
+        level (Level): The level file to write
+
+    Returns:
+        The bytes that encode that level file
+    """
     with DFWriter(io.BytesIO()) as writer:
         writer.write_level(level)
         return writer.data.getvalue()
-
-
-# pylint: disable=fixme
-# TODO, support DF_EMT, DF_PRT, DF_WND

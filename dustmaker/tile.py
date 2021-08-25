@@ -39,97 +39,77 @@ class TileEdgeData:
     as pairs of data to correspond to the two corners of the tile edge. These
     corners are ordered clockwise around the tile (the tile should be on your
     right as you traverse from the first to second corner).
-
-    Attributes:
-        solid (bool): Should this edge produce collisions
-        visible (bool): Is this edge visible
-        caps ((bool, bool)): Wether an edge cap should be drawn for each corner
-        angles ((int, int)): Edge join angle in degrees, should be in the range
-            -90 < angle < 90. Ignored if the corresponding cap flag is set.
-        filth_sprite_set (TileSpriteSet): Sprite set of dust or spikes on this edge.
-            Use `TileSpriteSet.NONE_0` to indicate no filth on this edge.
-        filth_spike (bool): If :attr:`filth_sprite_set` is not `TileSpriteSet.NONE_0`
-            this flag controls if there is dust or spikes on the edge.
-        filth_caps ((bool, bool)): Same as :attr:`caps` but for drawing filth
-            (dust/spikes) caps.
-        filth_angles ((int, int)): Same as :attr:`angles` but for filth join angles.
     """
 
+    #: Should this edge produce collisions
     solid: bool = False
+    #: Is this edge visible
     visible: bool = False
+    #: Wether an edge cap should be drawn for each corner
     caps: Tuple[bool, bool] = (False, False)
+    #: Edge join angle in degrees, should be in the range #: -90 < angle < 90.
+    #: Ignored if the corresponding cap flag is set.
     angles: Tuple[int, int] = (0, 0)
+    #: Sprite set of dust or spikes on this edge. Use `TileSpriteSet.NONE_0`
+    #: to indicate no filth on this edge.
     filth_sprite_set: TileSpriteSet = TileSpriteSet.NONE_0
+    #: If :attr:`filth_sprite_set` is not `TileSpriteSet.NONE_0` this flag
+    #: controls if there is dust or spikes on the edge.
     filth_spike: bool = False
+    #: Same as :attr:`caps` but for drawing filth (dust/spikes) caps.
     filth_caps: Tuple[bool, bool] = (False, False)
+    #: Same as :attr:`angles` but for filth join angles.
     filth_angles: Tuple[int, int] = (0, 0)
 
 
 class TileShape(IntEnum):
-    """Tiles come in four main types; full, half, big, and small.
-
-    Full corresponds to a complete square tile.
-
-    Half corresponds to one of the tiles aligned to 45 degrees that take up
-    half of the tile unit.  These come in four varieties A, B, C, and D
-    depicted on the wheel below.
-
-    Big and small tiles form the inbetween angles.  The big tile variant
-    covers 75% of the tile while the small tile variant covers 25% of the
-    tile.  Each of these comes in 8 varieties 1-8 depicted in the wheel below.
-
-    To determine the angle of a half, big, or small tile from its shape find
-    its identifier in the wheel.  Imagine you were located at X and the +
-    characters formed a circle around you; the angle of the tile would be
-    approximately the angle of the circle surface where its label is.
-
-    ::
-
-              +++++
-           +7+     +3+
-          +           +
-         +             +
-        B               C
-       +                 +
-      +                   +
-      2                   6
-      +                   +
-     +                     +
-     +                     +
-     +          X          +
-     +                     +
-     +                     +
-      +                   +
-      8                   4
-      +                   +
-       +                 +
-        A               D
-         +             +
-          +           +
-           +1+     +5+
-              +++++
+    """Tiles come in four main types; full, half, big, and small. Images of
+    those tiles can be seen below. Alternatively refer to
+    https://github.com/cmann1/PropUtils/blob/master/files/tiles_reference/TileShapes.jpg
+    for an image of all tiles in one place.
     """
 
+    #: .. image:: images/tiles/full.png
     FULL = 0
+    #: .. image:: images/tiles/big_1.png
     BIG_1 = 1
+    #: .. image:: images/tiles/small_1.png
     SMALL_1 = 2
+    #: .. image:: images/tiles/big_2.png
     BIG_2 = 3
+    #: .. image:: images/tiles/small_2.png
     SMALL_2 = 4
+    #: .. image:: images/tiles/big_3.png
     BIG_3 = 5
+    #: .. image:: images/tiles/small_3.png
     SMALL_3 = 6
+    #: .. image:: images/tiles/big_4.png
     BIG_4 = 7
+    #: .. image:: images/tiles/small_4.png
     SMALL_4 = 8
+    #: .. image:: images/tiles/big_5.png
     BIG_5 = 9
+    #: .. image:: images/tiles/small_5.png
     SMALL_5 = 10
+    #: .. image:: images/tiles/big_6.png
     BIG_6 = 11
+    #: .. image:: images/tiles/small_6.png
     SMALL_6 = 12
+    #: .. image:: images/tiles/big_7.png
     BIG_7 = 13
+    #: .. image:: images/tiles/small_7.png
     SMALL_7 = 14
+    #: .. image:: images/tiles/big_8.png
     BIG_8 = 15
+    #: .. image:: images/tiles/small_8.png
     SMALL_8 = 16
+    #: .. image:: images/tiles/half_a.png
     HALF_A = 17
+    #: .. image:: images/tiles/half_b.png
     HALF_B = 18
+    #: .. image:: images/tiles/half_c.png
     HALF_C = 19
+    #: .. image:: images/tiles/half_d.png
     HALF_D = 20
 
 

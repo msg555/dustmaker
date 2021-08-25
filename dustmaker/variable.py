@@ -238,9 +238,13 @@ class VariableArray(Variable, collections.abc.MutableSequence):
     def __len__(self):
         return len(self.value[1])
 
+    # Method labeled as private since none of the other MutableSequence methods
+    # are directly included in the docs.
     def insert(self, index, value):
         """Impelements the :class:`MutableSequence.insert` interface by inserting
         the boxed value into the backing variable list.
+
+        :meta private:
         """
         self.value[1].insert(index, self._box(value))
 

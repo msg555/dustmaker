@@ -6,6 +6,17 @@ import random
 import unittest
 
 from dustmaker import DFReader, DFWriter
+from dustmaker.variable import (
+    VariableArray,
+    VariableBool,
+    VariableFloat,
+    VariableInt,
+    VariableString,
+    VariableStruct,
+    VariableType,
+    VariableUInt,
+    VariableVec2,
+)
 
 
 class TestIOUnit(unittest.TestCase):
@@ -54,3 +65,44 @@ class TestIOUnit(unittest.TestCase):
             for pos, text in write_data:
                 reader.bit_seek(pos)
                 self.assertEqual(text, reader.read_6bit_str())
+
+    def test_var_io(self):
+        """Test that variables get serialized correctly"""
+        variables = VariableStruct(
+            {
+                "v1": VariableBool(False),
+                "v2": VariableBool(False),
+                "a" * 63: VariableInt(-(2 ** 31)),
+                "b": VariableUInt((2 ** 32) - 1),
+                "longstring": VariableString(b"wowee" * (2 ** 16)),
+                "arr": VariableArray(
+                    VariableString,
+                    [
+                        VariableString(b"hi"),
+                        VariableString(b"bye"),
+                        VariableString(b"nice" * (2 ** 16)),
+                        VariableString(b"later"),
+                    ],
+                ),
+                "emptyarr": VariableArray(VariableInt, []),
+                "structarr": VariableArray(
+                    VariableStruct,
+                    [
+                        VariableStruct({"key1": VariableFloat(0.5)}),
+                        VariableStruct({"key2": VariableInt(555)}),
+                    ],
+                ),
+                "emptystruct": VariableStruct({}),
+                "vec2": VariableVec2((2.0, 4.0)),
+            }
+        )
+
+        with DFWriter(io.BytesIO()) as writer:
+            writer.write_variable(variables)
+            writer.flush()
+            data = writer.data.getvalue()
+
+        with DFReader(io.BytesIO(data)) as reader:
+            variables_new = reader.read_variable(VariableType.STRUCT)
+
+        self.assertEqual(variables, variables_new)

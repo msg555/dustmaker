@@ -1,6 +1,4 @@
-"""
-Module defining shared exception classes.
-"""
+""" Module defining shared exception classes. """
 
 
 class LevelException(Exception):

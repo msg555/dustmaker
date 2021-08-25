@@ -3,10 +3,10 @@ Module defining basic entity representations as well as a custom entity
 object for each entity in Dustforce.
 """
 import copy
+from enum import IntEnum
 import math
 from typing import cast, Dict, Optional, Tuple, Type, TypeVar
 
-from .enums import CameraNodeType
 from .transform import TxMatrix
 from .variable import (
     Variable,
@@ -15,6 +15,7 @@ from .variable import (
     VariableFloat,
     VariableInt,
     VariableString,
+    VariableStruct,
     VariableUInt,
     VariableVec2,
 )
@@ -22,18 +23,42 @@ from .variable import (
 T = TypeVar("T")
 
 
+def _get_python_prop_type(prop_type: Type[Variable]) -> str:
+    """Returns the python type name for variable types for use
+    with documentation."""
+    if prop_type is VariableBool:
+        return "bool"
+    if prop_type in (VariableInt, VariableUInt):
+        return "int"
+    if prop_type is VariableFloat:
+        return "float"
+    if prop_type is VariableString:
+        return "bytes"
+    if prop_type is VariableVec2:
+        return "(float, float)"
+    if prop_type is VariableStruct:
+        return "dict[str, Variable]"
+    if prop_type is VariableArray:
+        return "MutableSequence"
+    raise TypeError("unexpected variable type")
+
+
 def bind_prop(
     prop_name: str,
     prop_type: Type[Variable],
     default: T,
     doc: Optional[str] = None,
+    doc_add_type=True,
     objtype=False,
 ) -> property:
     """Define getters and setters for a named property backed by the map's
     var mapping.
+
+    :meta private:
     """
 
-    def _get(self) -> T:
+    # Removed "-> T" type annotation on this because it was making docs ugly.
+    def _get(self):
         """get the property with given default"""
         var = self.variables.get(prop_name)
         if var is None:
@@ -56,7 +81,11 @@ def bind_prop(
         self.variables.pop(prop_name, None)
 
     if doc is None:
-        doc = f"property '{prop_name}'"
+        doc = f"Wrapper around `variables['{prop_name}']` of type :class:`{prop_type.__name__}`."
+    if doc_add_type:
+        doc = f"{_get_python_prop_type(prop_type)}: {doc}"
+    if not objtype:
+        doc = f"{doc} Defaults to `{default}`."
 
     return property(fget=_get, fset=_set, fdel=_del, doc=doc)
 
@@ -65,20 +94,53 @@ def bind_prop_arr(
     prop_name: str,
     elem_type: Type[Variable],
     doc: Optional[str] = None,
+    doc_add_type=True,
 ) -> property:
-    """Convenience wrapper around bind_prop for array properties"""
+    """Convenience wrapper around bind_prop for array properties
+
+    :meta private:
+    """
+    if doc is None:
+        doc = f"Wrapper around `variables['{prop_name}']` of type `VariableArray[{elem_type.__name__}]`."
+    if doc_add_type:
+        doc = f"MutableSequence[{_get_python_prop_type(elem_type)}]: {doc}"
+
     return bind_prop(
         prop_name,
         VariableArray,
         lambda: VariableArray(elem_type),
         doc=doc,
+        doc_add_type=False,
         objtype=True,
     )
 
 
 class Entity:
-    """
-    Base class representing an entity object in a map.
+    """Base class representing an entity object in a map. Commonly used
+    entities have subclasses of :class:`Entity` to represent them. Those that
+    do not will simply be of type :class:`Entity` and have their :attr:`etype`
+    field set to control how the Dustforce engine will interpret the entity.
+
+    To add new Entity types simply extend this class and include a `TYPE_IDENTIFIER`
+    class attribute that matches the type identifier used internally by Dustforce.
+    The level reader and writer will then automatically use these types (as long as
+    the classes have been initialized). Additionally you can override the
+    :meth:`remap_ids` and :meth:`transform` methods to handle any special processing
+    this entity type requires. If you make these changes consider contributing your
+    entity specialization as a pull request.
+
+    Attributes:
+        etype (str): The entity type name. This typically matches the `TYPE_IDENTIFIER`
+            attribute of the concrete type of this object.
+        variables (dict[str, Variable]): Persist data variable mapping for this entity
+        rotation (16-bit uint): Clockwise rotation of the entity ranging from 0 to 0xFFFF.
+            0x4000 corresponds to a 90 degree rotation, 0x8000 to 180 degrees, 0xC000
+            to 270 degrees. This rotation is logically applied after any flips have
+            been applied.
+        layer (8-bit uint): Layer to render the entity in
+        flip_x (bool): Flip the entity horizontally
+        flip_y (bool): Flip the entity vertically
+        visible (bool): Is the entity visible
     """
 
     _known_types: Dict[str, Type["Entity"]] = {}
@@ -99,15 +161,15 @@ class Entity:
         variables: Dict[str, Variable],
         rotation: int,
         layer: int,
-        flipX: bool,
-        flipY: bool,
+        flip_x: bool,
+        flip_y: bool,
         visible: bool,
     ) -> "Entity":
         """Construct an entity from its map format definition."""
         subcls = cls._known_types.get(etype)
         if subcls is not None:
-            return subcls(variables, rotation, layer, flipX, flipY, visible)
-        entity = Entity(variables, rotation, layer, flipX, flipY, visible)
+            return subcls(variables, rotation, layer, flip_x, flip_y, visible)
+        entity = Entity(variables, rotation, layer, flip_x, flip_y, visible)
         entity.etype = etype
         return entity
 
@@ -116,16 +178,16 @@ class Entity:
         variables: Optional[Dict[str, Variable]] = None,
         rotation=0,
         layer=18,
-        flipX=False,
-        flipY=False,
+        flip_x=False,
+        flip_y=False,
         visible=True,
     ) -> None:
-        self.etype: str = getattr(self, "TYPE_IDENTIFIER", "unknown_type")
+        self.etype = getattr(self, "TYPE_IDENTIFIER", "unknown_type")
         self.variables = copy.deepcopy(variables) if variables is not None else {}
         self.rotation = rotation
         self.layer = layer
-        self.flipX = flipX
-        self.flipY = flipY
+        self.flip_x = flip_x
+        self.flip_y = flip_y
         self.visible = visible
 
     def __repr__(self) -> str:
@@ -133,8 +195,8 @@ class Entity:
             self.etype,
             self.rotation,
             self.layer,
-            self.flipX,
-            self.flipY,
+            self.flip_x,
+            self.flip_y,
             self.visible,
             repr(self.variables),
         )
@@ -144,11 +206,14 @@ class Entity:
         IDs."""
 
     def transform(self, mat: TxMatrix) -> None:
-        """Generic transform implementation for entities. Some entity types may
-        want to add additional functionality on top of this."""
+        """Generic transform implementation for entities. Transforms the Entity
+        :attr:`rotation` and :attr:`flip_y` attributes (:attr:`flip_x` is redundant).
+
+        Many subtypes will perform additional transformations on their :attr:`variables`.
+        """
         self.rotation = self.rotation - int(0x10000 * mat.angle / math.pi / 2) & 0xFFFF
         if mat.flipped:
-            self.flipY = not self.flipY
+            self.flip_y = not self.flip_y
             self.rotation = -self.rotation & 0xFFFF
 
 
@@ -230,17 +295,37 @@ class FogTrigger(Trigger):
             colours[index], pers[index] = val
         return result
 
-    def layer_fog(
-        self, layer: int, val: Optional[Tuple[int, float]] = None
-    ) -> Tuple[int, float]:
-        """Get/set the fog colour and percentage for a given layer."""
-        return self._fog_by_index(layer, val)
+    def normalize(self) -> None:
+        """Resizes :attr:`colours` and :attr:`pers` arrays to be the
+        correct length for the given :attr:`has_sub_layers` setting.
+        """
+        want_length = 21 * 26 if self.has_sub_layers else 21
+        while len(self.colours) > want_length:
+            self.colours.pop()
+        while len(self.pers) > want_length:
+            self.pers.pop()
+        while len(self.colours) < want_length:
+            self.colours.append(0x111118)
+        while len(self.pers) < want_length:
+            self.pers.append(0.0)
 
-    def sub_layer_fog(
-        self, layer: int, sublayer: int, val: Optional[Tuple[int, float]] = None
-    ) -> Tuple[int, float]:
-        """Get/set the fog colour and percentage for a given sub-layer."""
-        return self._fog_by_index((sublayer + 1) * 21 + layer, val)
+    @staticmethod
+    def get_layer_index(layer: int, sublayer: Optional[int] = None) -> int:
+        """Helper function to find fog data for a given layer/sublayer.
+
+        Arguments:
+            layer (int): Must be between 0 and 20 inclusive.
+            sublayer (int): Must be between 0 and 24 inclusive.
+
+        Returns:
+            Index into :attr:`colours` and :attr:`pers` where fog data is
+            stored for the given `layer` and (if present) `sublayer`.
+        """
+        assert 0 <= layer <= 20
+        if sublayer is None:
+            return layer
+        assert 0 <= sublayer <= 20
+        return (sublayer + 1) * 21 + layer
 
     speed = bind_prop("speed", VariableFloat, 5.0)
     gradient = bind_prop_arr("gradient", VariableUInt)
@@ -248,7 +333,22 @@ class FogTrigger(Trigger):
     star_bottom = bind_prop("star_bottom", VariableFloat, 0.0)
     star_middle = bind_prop("star_middle", VariableFloat, 0.4)
     star_top = bind_prop("star_top", VariableFloat, 1.0)
-    has_sub_layers = bind_prop("has_sub_layers", VariableBool, False)
+    has_sub_layers = bind_prop(
+        "has_sub_layers",
+        VariableBool,
+        False,
+        "Controls if sublayer fog data is enabled for this trigger",
+    )
+    colours = bind_prop_arr(
+        "fog_trigger",
+        VariableUInt,
+        "Fog colour in 0xRRGGBB format for each (sub)layer.",
+    )
+    pers = bind_prop_arr(
+        "fog_per",
+        VariableFloat,
+        "Mixing coefficient for the fog each (sub)layer from 0.0 to 1.0.",
+    )
 
 
 class AmbienceTrigger(Trigger):
@@ -325,6 +425,18 @@ class AIController(Entity):
     puppet = bind_prop("puppet_id", VariableUInt, 0)
 
 
+class CameraNodeType(IntEnum):
+    """
+    Enum defining the different camera node types
+    """
+
+    NORMAL = 1
+    DETACH = 2
+    CONNECT = 3
+    INTEREST = 4
+    FORCE_CONNECT = 5
+
+
 class CameraNode(Entity):
     """Camera node entity class"""
 
@@ -348,7 +460,7 @@ class CameraNode(Entity):
         "node_type",
         VariableInt,
         CameraNodeType.NORMAL,
-        "camera node type, see CameraNodeType enum",
+        "Camera node type, see :class:`CameraNodeType` enum.",
     )
     test_widths = bind_prop_arr("test_widths", VariableInt)
     nodes = bind_prop_arr("c_node_ids", VariableUInt)
@@ -410,9 +522,14 @@ class EntityHittable(Entity):
 
 
 class Enemy(EntityHittable):
-    """Base class for all enemy types"""
+    """Base class for all enemy types
 
-    FILTH = 1
+    Subclasses can override :attr:`FILTH` to control how much "filth" is
+    attributed to this entity. The DF file format requires a totalling of
+    all filth in a level for completion calculations.
+    """
+
+    FILTH: int = 1
 
 
 class EnemyLightPrism(Enemy):
@@ -422,7 +539,9 @@ class EnemyLightPrism(Enemy):
 
 
 class EnemyHeavyPrism(Enemy):
-    """Heavy prism entity class"""
+    """Heavy prism entity class. Note that although heavy prisms reward 3 dust
+    when cleansing them they only count as 1 filth from the perspective of
+    completion calculations."""
 
     TYPE_IDENTIFIER = "enemy_tutorial_hexagon"
 

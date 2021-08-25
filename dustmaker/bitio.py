@@ -12,35 +12,38 @@ class BitIO:
     endian order.
 
     Within the IO source bits are ordered from LSB to MSB. Therefore the
-    first bit is the '1's place of the first byte and the last bit is the
-    '128's place of the last byte.
+    first bit of a stream is the '1's place of the first byte. The last bit
+    of a stream is the '128's place bit of the last byte.
+
+    Arguments:
+        noclose (bool): Normally when the BitIO object is closed
+            :attr:`data` is also closed. If this is set then :attr:`data`
+            will be left open after this BitIO is closed.
     """
 
     __slots__ = ("data", "_tell", "_bits", "_bits_left", "_noclose")
 
     def __init__(self, data: BinaryIO, *, noclose: bool = False) -> None:
-        """Create a new BitIO using data as the backing stream.
-
-        data - A binary input stream. Should support read/write/seek if those
-            respective operations are done on the BitIO itself.
-        """
+        #: BinaryIO: A binary data stream. Should support read/write/seek
+        #: if those respective operations are done on the BitIO object itself.
         self.data = data
         self._tell = 0
         self._bits = 0
         self._bits_left = 0
         self._noclose = noclose
         try:
-            self._tell = data.tell()
+            self._tell = data.tell() << 3
         except (AttributeError, IOError):
             pass
 
     def release(self) -> None:
-        """Prevents closing this bitio BitIO object from closing the backing
-        stream."""
+        """Prevents :meth:`close` from closing :attr:`data` as well."""
         self._noclose = True
 
     def close(self) -> None:
-        """Flush any pending bits and close the underlying stream."""
+        """Flush any pending bits and close :attr:`data` unless
+        it has been released.
+        """
         if not self._noclose:
             self.data.close()
 
@@ -50,16 +53,18 @@ class BitIO:
 
     def align(self) -> None:
         """Seeks the stream forward to the nearest byte boundary. This does
-        not require the underlying data stream to support seek.
+        not require :attr:`data` to support seek itself.
         """
         self._tell += self._bits_left
         self._bits = 0
         self._bits_left = 0
 
     def skip(self, bits: int) -> None:
-        """Skips `bits` bits in the bit stream.
+        """Skips `bits` bits in the bit stream. Requires :attr:`data` to
+        support seeks.
 
-        bits -- the number of bits to skip.
+        Arguments:
+            bits (int): the number of bits to skip
         """
         self.bit_seek(self._tell + bits)
 
@@ -68,7 +73,11 @@ class BitIO:
         return self._tell
 
     def bit_seek(self, pos: int) -> None:
-        """Seeks to the desired position in the stream relative the start"""
+        """Seeks to a new bit-position in the stream.
+
+        Arguments:
+            pos (int): The position in bits from the start of the stream
+        """
         self.data.seek(pos // 8)
         self._tell = pos
         self._bits_left = -pos % 8
@@ -82,9 +91,7 @@ class BitIO:
 
 
 class BitIOReader(BitIO):
-    """
-    Bit reader wrapper for a data stream.
-    """
+    """Bit reader wrapper for a data stream"""
 
     def __init__(self, data: BinaryIO, *, noclose: bool = False) -> None:
         if not isinstance(data, io.BufferedIOBase):
@@ -92,10 +99,12 @@ class BitIOReader(BitIO):
         super().__init__(data, noclose=noclose)
 
     def read(self, bits: int, signed: bool = False) -> int:
-        """Reads the next `bits` bits into an integer in little endian order.
+        """Reads in the next `bits` bits into an integer in little endian order.
 
-        bits -- The number of bits to read.
-        signed -- Indicates if the MSB is a sign bit.
+        Arguments:
+            bits (int): The number of bits to read in
+            signed (bool): Wether the most significant bit should be interpretted
+                as a sign bit.
         """
         bytes_needed = (bits - self._bits_left + 7) >> 3
         if self._bits == -1:
@@ -133,10 +142,10 @@ class BitIOReader(BitIO):
         return result
 
     def read_bytes(self, num: int) -> bytes:
-        """Returns a bytes object containing the next `num` bytes from the bit
-        stream.
+        """Reads in the next `num` bytes and returns them as a `bytes` object.
 
-        num -- The number of bytes to extract from the bit stream.
+        Arguments:
+            num (int): The number of bytes to extract from the bit stream.
         """
         if self._bits_left == 0:
             data = self.data.read(num)
@@ -146,17 +155,9 @@ class BitIOReader(BitIO):
 
 
 class BitIOWriter(BitIO):
-    """
-    Bit writer wrapper for a data stream.
-    """
+    """Bit writer wrapper for a data stream."""
 
     def __init__(self, data: BinaryIO, *, noclose: bool = False) -> None:
-        """Create BitIOWriter around an existing data source.
-
-        :data: The target output stream.
-        :noclose: If set will cause `data` to not be closed when this writer
-                  closes.
-        """
         if not isinstance(data, io.BufferedIOBase):
             data = io.BufferedWriter(data)  # type: ignore
         super().__init__(data, noclose=noclose)
@@ -164,12 +165,9 @@ class BitIOWriter(BitIO):
     def write(self, bits: int, val: int) -> None:
         """Writes `val`, an integer of `bits` bits in size, to the stream.
 
-        Partially written bits will not be written to the stream until it is
-        closed or flush is called.
-
-        Seeks mid-byte are not supported and will cause data loss if a write is
-        attempted. Writes in the middle of the data stream that do not align to
-        a byte boundary are similarly not supported and will cause data loss.
+        Note:
+            If the last byte is partially completed it will not be written
+            until the stream is closed or flushed.
         """
         if val < 0:
             val += 1 << bits
@@ -208,7 +206,11 @@ class BitIOWriter(BitIO):
         self._tell += bits
 
     def write_bytes(self, buf: bytes) -> None:
-        """Writes the bytes in buf to the stream"""
+        """Writes the bytes in `buf` to the stream
+
+        Arguments:
+            buf (bytes): The data to write to the stream
+        """
         if self._bits_left == 0:
             self.data.write(buf)
             self._tell += len(buf) << 3
@@ -217,22 +219,31 @@ class BitIOWriter(BitIO):
             self.write(8, byt)
 
     def close(self) -> None:
-        """Flush any pending bits and close the underlying stream."""
+        """Flush any pending bits and close the underlying stream
+        (unless released).
+        """
         try:
             self.flush()
         finally:
             super().close()
 
     def flush(self) -> None:
-        """Flushes any trailing bits. As a side effect seeks the data stream
-        forward."""
+        """Flushes any trailing bits.
+
+        Warning:
+            If there are trailing bits this will cause the stream to seek
+            forward to the next byte boundary. Generally you shouldn't need to
+            call this directly and should allow other methods like :meth:`close`,
+            :meth:`align`, :meth:`bit_seek` to call flush for you at times that
+            always make sense.
+        """
         if self._bits_left != 0 and self._bits != -1:
             self.data.write(bytes((self._bits,)))
 
     def align(self) -> None:
         """Seeks the stream forward to the nearest byte boundary. This does
-        not require the underlying data stream to support seek. This also
-        triggers a flush.
+        not require :attr:`data` to support seek itself. This also triggers
+        a flush.
         """
         self.flush()
         super().align()
@@ -240,7 +251,23 @@ class BitIOWriter(BitIO):
     # pylint: disable=arguments-differ
     def bit_seek(self, pos: int, *, allow_unaligned: bool = False) -> None:
         """Seeks to the desired position in the stream relative the start.
-        This also triggers a flush.
+        This also triggers a flush of any pending data at our current location.
+
+        Arguments:
+            pos (int): The bit position to seek to relative the start of the
+                stream.
+            allow_unaligned (bool): Normally unaligned seeks are not allowed.
+                If you set this flag they will be allowed however any write
+                performed at the new location will have the effect of zero'ing any
+                bits earlier within the byte that we are seeking into.
+
+        Warning:
+            Seeking into a non-byte aligned position is not well supported and
+            cannot be done generally without performing a read.
+
+        Raises:
+            RuntimeError: If seek is not byte aligned and `allow_unaligned` is
+                not set.
         """
         if not allow_unaligned and (pos & 7) != 0:
             raise RuntimeError(

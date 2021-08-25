@@ -17,6 +17,7 @@ tile module
 
 .. automodule:: dustmaker.tile
    :members:
+   :undoc-members:
    :show-inheritance:
 
 variable module
@@ -33,6 +34,7 @@ entity module
 .. automodule:: dustmaker.entity
    :members:
    :undoc-members:
+   :show-inheritance:
 
 prop module
 ----------------------
@@ -40,6 +42,7 @@ prop module
 .. automodule:: dustmaker.prop
    :members:
    :undoc-members:
+   :show-inheritance:
 
 bitio module
 ----------------------
@@ -61,14 +64,6 @@ dfwriter module
 ----------------------
 
 .. automodule:: dustmaker.dfwriter
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-enums module
-----------------------
-
-.. automodule:: dustmaker.enums
    :members:
    :undoc-members:
    :show-inheritance:

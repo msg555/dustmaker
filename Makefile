@@ -1,6 +1,8 @@
 .PHONY: format format-check pylint typecheck lint test docs
 PYTHON := python3
 
+all: format lint test docs
+
 format:
 	$(PYTHON) -m black .
 
