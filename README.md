@@ -13,11 +13,26 @@ Documentation can be found at
 Installation
 ------------
 
-    easy_install3 dustmaker
+Install with pip through PyPi using
 
-or
+    python -m pip install dustmaker
 
-    python3 -m pip install dustmaker
+or clone this repository and install using
+
+    ./setup.py install
+
+Command Line Tool
+---------------------------
+
+Dustmaker comes with a few command line tools that can be accessed through
+running the dustmaker module.
+
+```bash
+$ python -m dustmaker --help
+... listing of available utilities
+$ python -m dustmaker transform --upscale 2 downhill big_downhill
+... creates upscaled version of downhill and saves to "big_downhill"
+```
 
 Example: Creating a new level from scratch
 ---------------------------
