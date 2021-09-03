@@ -4,4 +4,6 @@ __pycache__
 *.egg
 *.egg-info
 docs/_build
-
+build
+dist
+*.pypi-token.gpg
