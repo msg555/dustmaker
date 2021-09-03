@@ -87,15 +87,13 @@ class BitIO:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.data.close()
+        self.close()
 
 
 class BitIOReader(BitIO):
     """Bit reader wrapper for a data stream"""
 
     def __init__(self, data: BinaryIO, *, noclose: bool = False) -> None:
-        if not isinstance(data, io.BufferedIOBase):
-            data = io.BufferedReader(data)  # type: ignore
         super().__init__(data, noclose=noclose)
 
     def read(self, bits: int, signed: bool = False) -> int:
