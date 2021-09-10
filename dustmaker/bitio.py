@@ -93,9 +93,6 @@ class BitIO:
 class BitIOReader(BitIO):
     """Bit reader wrapper for a data stream"""
 
-    def __init__(self, data: BinaryIO, *, noclose: bool = False) -> None:
-        super().__init__(data, noclose=noclose)
-
     def read(self, bits: int, signed: bool = False) -> int:
         """Reads in the next `bits` bits into an integer in little endian order.
 

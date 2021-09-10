@@ -499,7 +499,7 @@ class LevelDoor(Trigger):
     TYPE_IDENTIFIER = "level_door"
 
     file_name = bind_prop("file_name", VariableString, b"")
-    door_set = bind_prop("door_set", VariableUInt, 0)
+    door_set = bind_prop("door_set", VariableInt, 0)
 
 
 class RedKeyDoor(Entity):
@@ -833,6 +833,22 @@ class Slimeboss(DustCharacter):
     """Slime boss entity class"""
 
     TYPE_IDENTIFIER = "slime_boss"
+
+
+class CustomScoreBook(Entity):
+    """Custom score book (tome) entity class"""
+
+    TYPE_IDENTIFIER = "custom_score_book"
+
+    level_list = bind_prop("level_list_id", VariableInt, 0, "ID of StringList entity")
+
+
+class StringList(Trigger):
+    """Data container entity"""
+
+    TYPE_IDENTIFIER = "z_string_list"
+
+    data = bind_prop_arr("list", VariableString)
 
 
 _NOTES = """ Missing persist types and vars

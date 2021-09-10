@@ -307,6 +307,7 @@ class DFReader(BitIOReader):
             for etype, xpos, ypos, eargs, id_num in entities:
                 if has_extended_names and etype == "entity":
                     etype = self.read_6bit_str()
+                level.entities.pop(id_num, None)
                 level.add_entity(
                     xpos,
                     ypos,
