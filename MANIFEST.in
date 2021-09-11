@@ -1,0 +1,2 @@
+include dustmaker/py.typed
+recursive-include dustmaker *.py
