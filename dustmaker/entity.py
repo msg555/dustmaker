@@ -296,8 +296,8 @@ class FogTrigger(Trigger):
         return result
 
     def normalize(self) -> None:
-        """Resizes :attr:`colours` and :attr:`pers` arrays to be the
-        correct length for the given :attr:`has_sub_layers` setting.
+        """Resizes :attr:`gradient`, :attr:`colours`, and :attr:`pers` arrays
+        to be the correct length for the given :attr:`has_sub_layers` setting.
         """
         want_length = 21 * 26 if self.has_sub_layers else 21
         while len(self.colours) > want_length:
@@ -308,6 +308,10 @@ class FogTrigger(Trigger):
             self.colours.append(0x111118)
         while len(self.pers) < want_length:
             self.pers.append(0.0)
+        while len(self.gradient) > 3:
+            self.gradient.pop()
+        while len(self.gradient) < 3:
+            self.gradient.append(0)
 
     @staticmethod
     def get_layer_index(layer: int, sublayer: Optional[int] = None) -> int:
@@ -327,7 +331,7 @@ class FogTrigger(Trigger):
         assert 0 <= sublayer <= 20
         return (sublayer + 1) * 21 + layer
 
-    speed = bind_prop("speed", VariableFloat, 5.0)
+    speed = bind_prop("fog_speed", VariableFloat, 5.0)
     gradient = bind_prop_arr("gradient", VariableUInt)
     gradient_middle = bind_prop("gradient_middle", VariableFloat, 0.0)
     star_bottom = bind_prop("star_bottom", VariableFloat, 0.0)
@@ -340,7 +344,7 @@ class FogTrigger(Trigger):
         "Controls if sublayer fog data is enabled for this trigger",
     )
     colours = bind_prop_arr(
-        "fog_trigger",
+        "fog_colour",
         VariableUInt,
         "Fog colour in 0xRRGGBB format for each (sub)layer.",
     )
