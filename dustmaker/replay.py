@@ -199,8 +199,11 @@ class Replay:
     frames: int = 0
     #: Per-player replay data
     players: List[PlayerData] = dataclasses.field(default_factory=list)
-    #: Entity desync data per entity. This maps the "replay uid" to the
-    #: EntityData captured for that entity. There are two fixed UIDs
+    #: Entity desync data per entity. This maps the entity ID in the map to
+    #: EntityData captured for that entity. Camera entities get the special
+    #: ID of 1 + 2 * player_index and player entities get the special
+    #: ID of 2 * player_index (alternatively you can use :meth:`get_camera_entity_data`
+    #: :meth:`get_player_entity_data` to access these data).
     entities: Dict[int, EntityData] = dataclasses.field(default_factory=dict)
 
     def get_player_entity_data(self, player: int = 1) -> Optional[EntityData]:

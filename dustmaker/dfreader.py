@@ -464,8 +464,15 @@ class DFReader(BitIOReader):
             self.read_region(level)
         return level
 
-    def read_replay(self) -> Replay:
-        """Read in a replay from the input stream."""
+    def read_replay(self, *, known_length: int = None) -> Replay:
+        """Read in a replay from the input stream.
+
+        Arguments:
+            known_length (int, optional): The total length in bytes of the
+                replay. Giving this length beforehand can speed
+                up parsing the replay data.
+        """
+        start_pos = self.bit_tell()
         self.read_expect(b"DF_RPL")
 
         rep = Replay(version=self.read(8) - ord("0"))
@@ -494,13 +501,18 @@ class DFReader(BitIOReader):
         level_len = self.read(8)
         rep.level = self.read_bytes(level_len)
 
-        # Decompress the next gzip block. Unfortunately the replay format
-        # doesn't tell us how many bytes we need to decompress so we just have
-        # to figure it out which is a bit inefficient.
-        input_data = bytearray()
-        decomp = zlib.decompressobj()
-        while not decomp.eof:
-            input_data += decomp.decompress(self.read_bytes(1))
+        if known_length:
+            input_data = zlib.decompress(
+                self.read_bytes(known_length - (self.bit_tell() - start_pos) // 8)
+            )
+        else:
+            # Decompress the next gzip block. Unfortunately the replay format
+            # doesn't tell us how many bytes we need to decompress so we just have
+            # to figure it out which is a bit inefficient.
+            input_data = bytearray()
+            decomp = zlib.decompressobj()
+            while not decomp.eof:
+                input_data += decomp.decompress(self.read_bytes(1))
 
         with DFReader(io.BytesIO(input_data)) as sub_reader:
             inputs_len = sub_reader.read(32)  # pylint: disable=unused-variable
@@ -537,10 +549,10 @@ class DFReader(BitIOReader):
                 entity = rep.entities.setdefault(entity_uid, replay.EntityData())
                 for _ in range(frame_count):
                     entity_frame = sub_reader.read(32)
-                    entity_x = sub_reader.read(32)
-                    entity_y = sub_reader.read(32)
-                    entity_x_speed = sub_reader.read(32)
-                    entity_y_speed = sub_reader.read(32)
+                    entity_x = sub_reader.read(32, signed=True)
+                    entity_y = sub_reader.read(32, signed=True)
+                    entity_x_speed = sub_reader.read(32, signed=True)
+                    entity_y_speed = sub_reader.read(32, signed=True)
                     entity.frames.append(
                         replay.EntityFrame(
                             frame=entity_frame,
