@@ -528,13 +528,15 @@ class DFReader(BitIOReader):
                         replay.IntentStream(intent), []
                     )
 
+                    first = True
                     state = intent_meta.default
                     while True:
                         count = sub_reader.read(8)
                         if count == 0xFF:
                             break
-                        if intent_values:
+                        if not first:
                             count += 1
+                        first = False
                         intent_values.extend(state for _ in range(count))
                         state = intent_meta.to_repr(sub_reader.read(intent_meta.bits))
 
