@@ -3,14 +3,17 @@ Module providing methods for write Dustforce binary formats including level
 files.
 """
 import io
+import itertools
 from math import floor, log
 from typing import Dict, Iterable, List, Tuple, Union
 import zlib
 
+from . import replay
 from .bitio import BitIOWriter
 from .level import Level
 from .exceptions import LevelParseException
 from .tile import TileSpriteSet
+from .replay import Replay
 from .variable import (
     Variable,
     VariableArray,
@@ -575,6 +578,122 @@ class DFWriter(BitIOWriter):
             level (Level): The level file to write
         """
         self.write_level_ex(level, [], b"")
+
+    def write_replay(self, rep: Replay, *, force_username=False) -> None:
+        """Write `rep` to the output stream.
+
+        Arguments:
+            rep (Replay): The replay object to write.
+            force_username (bool, optional): Write a username header even if
+                `rep.username` is empty.
+        """
+        if rep.username or force_username:
+            self.write_bytes(b"DF_RPL2")
+            self.write(16, len(rep.username))
+            self.write_bytes(rep.username)
+
+        if rep.version not in (1, 3, 4):
+            raise LevelParseException("unknown replay format")
+
+        self.write_bytes(b"DF_RPL")
+        self.write(8, ord("0") + rep.version)
+
+        if rep.version < 3 and len(rep.players) != 1:
+            raise LevelParseException("version 1 requires exactly 1 player")
+
+        with DFWriter(io.BytesIO()) as sub_writer:
+            # Write the input section.
+            sub_writer.skip(32)
+            for player in rep.players:
+                for intent, intent_meta in enumerate(replay._INTENT_META):
+                    if rep.version < intent_meta.version:
+                        break
+
+                    # Calculate run lengths
+                    run_count = 1
+                    run_value = intent_meta.default
+                    run_lengths = []
+                    for value in itertools.chain(
+                        player.intents.get(replay.IntentStream(intent), []), (None,)
+                    ):
+                        if value != run_value and run_count > 0:
+                            run_lengths.append(
+                                (run_count, intent_meta.to_bits(run_value))
+                            )
+                            run_count = 0
+                        run_value = value
+                        run_count += 1
+
+                    # Remove unneeded default inputs at the end
+                    if len(run_lengths) > 1 and run_lengths[-1][
+                        1
+                    ] == intent_meta.to_bits(intent_meta.default):
+                        run_lengths.pop()
+
+                    start_pos = sub_writer.bit_tell()
+                    sub_writer.skip(32)
+
+                    # Write run length encoding to the stream
+                    first = True
+                    run_lengths.reverse()
+                    while run_lengths:
+                        count, value = run_lengths[-1]
+                        assert count != 0
+
+                        if not first:
+                            sub_writer.write(intent_meta.bits, value)
+                        first = False
+                        if count <= 0xFF:
+                            sub_writer.write(8, count - 1)
+                            run_lengths.pop()
+                        else:
+                            sub_writer.write(8, 0xFE)
+                            run_lengths[-1] = (count - 0xFF, value)
+                    sub_writer.write(
+                        intent_meta.bits, intent_meta.to_bits(intent_meta.default)
+                    )
+                    sub_writer.write(8, 0xFF)
+                    sub_writer.align()
+
+                    end_pos = sub_writer.bit_tell()
+                    sub_writer.bit_seek(start_pos)
+                    sub_writer.write(32, (end_pos - start_pos - 32) // 8)
+                    sub_writer.bit_seek(end_pos)
+
+            # Write the input section length back at the start.
+            pos = sub_writer.bit_tell()
+            sub_writer.bit_seek(0)
+            sub_writer.write(32, (pos - 32) // 8)
+            sub_writer.bit_seek(pos)
+
+            sub_writer.write(32, len(rep.entities))
+            for replay_uid, (entity_uid, entity_data) in enumerate(
+                rep.entities.items()
+            ):
+                sub_writer.write(32, entity_uid)
+                sub_writer.write(32, replay_uid)
+                sub_writer.write(32, len(entity_data.frames))
+
+                for frame in entity_data.frames:
+                    sub_writer.write(32, frame.frame)
+                    sub_writer.write(32, int(round(frame.x_pos * 10.0)))
+                    sub_writer.write(32, int(round(frame.y_pos * 10.0)))
+                    sub_writer.write(32, int(round(frame.x_speed * 100.0)))
+                    sub_writer.write(32, int(round(frame.y_speed * 100.0)))
+
+            sub_writer.flush()
+            sub_data = sub_writer.data.getvalue()
+
+        self.write(16, len(rep.players))
+        self.write(32, len(sub_data))
+        self.write(32, rep.frames)
+
+        for player in rep.players:
+            self.write(8, player.character)
+
+        self.write(8, len(rep.level))
+        self.write_bytes(rep.level)
+        self.write_bytes(zlib.compress(sub_data))
 
 
 def write_level(level: Level) -> bytes:

@@ -48,3 +48,25 @@ class TestEndToEnd(unittest.TestCase):
             writer.write_level_ex(level3, region_offsets, region_data)
             data3 = writer.data.getvalue()
             self.assertEqual(data1, data3)
+
+    def test_read_write_replay(self):
+        """Test read/write cycles succeed and produce a fixed result on a replay"""
+        f_in = os.path.join(here, "downhill.dfreplay")
+
+        with DFReader(open(f_in, "rb")) as reader:
+            replay1 = reader.read_replay()
+
+        with DFWriter(io.BytesIO()) as writer:
+            writer.write_replay(replay1)
+            writer.flush()
+            data1 = writer.data.getvalue()
+
+        with DFReader(io.BytesIO(data1)) as reader:
+            replay2 = reader.read_replay()
+
+        with DFWriter(io.BytesIO()) as writer:
+            writer.write_replay(replay2)
+            writer.flush()
+            data2 = writer.data.getvalue()
+
+        self.assertEqual(data1, data2)

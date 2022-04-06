@@ -5,11 +5,13 @@ import io
 from typing import Any, Dict, List, Tuple
 import zlib
 
+from . import replay
 from .bitio import BitIOReader
 from .entity import Entity
 from .level import Level, LevelType
 from .exceptions import LevelParseException
 from .prop import Prop
+from .replay import Replay
 from .tile import Tile, TileShape
 from .variable import (
     Variable,
@@ -461,6 +463,109 @@ class DFReader(BitIOReader):
         for _ in range(len(region_offsets) - 1):
             self.read_region(level)
         return level
+
+    def read_replay(self, *, known_length: int = None) -> Replay:
+        """Read in a replay from the input stream.
+
+        Arguments:
+            known_length (int, optional): The total length in bytes of the
+                replay. Giving this length beforehand can speed
+                up parsing the replay data.
+        """
+        start_pos = self.bit_tell()
+        self.read_expect(b"DF_RPL")
+
+        rep = Replay(version=self.read(8) - ord("0"))
+
+        # Strip out username header if present.
+        if rep.version == 2:
+            username_len = self.read(16)
+            rep.username = self.read_bytes(username_len)
+            self.read_expect(b"DF_RPL")
+            rep.version = self.read(8) - ord("0")
+
+        if rep.version not in (1, 3, 4):
+            raise LevelParseException("unknown replay format")
+
+        num_players = self.read(16)
+        if rep.version < 3:
+            num_players = 1
+        uncompressed_size = self.read(32)  # pylint: disable=unused-variable
+        rep.frames = self.read(32)
+
+        rep.players = [
+            replay.PlayerData(character=replay.Character(self.read(8)))
+            for _ in range(num_players)
+        ]
+
+        level_len = self.read(8)
+        rep.level = self.read_bytes(level_len)
+
+        if known_length:
+            input_data = zlib.decompress(
+                self.read_bytes(known_length - (self.bit_tell() - start_pos) // 8)
+            )
+        else:
+            # Decompress the next gzip block. Unfortunately the replay format
+            # doesn't tell us how many bytes we need to decompress so we just have
+            # to figure it out which is a bit inefficient.
+            input_data = bytearray()
+            decomp = zlib.decompressobj()
+            while not decomp.eof:
+                input_data += decomp.decompress(self.read_bytes(1))
+
+        with DFReader(io.BytesIO(input_data)) as sub_reader:
+            inputs_len = sub_reader.read(32)  # pylint: disable=unused-variable
+
+            for player in rep.players:
+                for intent, intent_meta in enumerate(replay._INTENT_META):
+                    if rep.version < intent_meta.version:
+                        break
+
+                    intent_len = sub_reader.read(32)
+                    next_pos = sub_reader.bit_tell() + intent_len * 8
+                    intent_values = player.intents.setdefault(
+                        replay.IntentStream(intent), []
+                    )
+
+                    first = True
+                    state = intent_meta.default
+                    while True:
+                        count = sub_reader.read(8)
+                        if count == 0xFF:
+                            break
+                        if not first:
+                            count += 1
+                        first = False
+                        intent_values.extend(state for _ in range(count))
+                        state = intent_meta.to_repr(sub_reader.read(intent_meta.bits))
+
+                    sub_reader.bit_seek(next_pos)
+
+            entity_count = sub_reader.read(32)
+            for _ in range(entity_count):
+                entity_uid = sub_reader.read(32)
+                replay_uid = sub_reader.read(32)  # pylint: disable=unused-variable
+                frame_count = sub_reader.read(32)
+
+                entity = rep.entities.setdefault(entity_uid, replay.EntityData())
+                for _ in range(frame_count):
+                    entity_frame = sub_reader.read(32)
+                    entity_x = sub_reader.read(32, signed=True)
+                    entity_y = sub_reader.read(32, signed=True)
+                    entity_x_speed = sub_reader.read(32, signed=True)
+                    entity_y_speed = sub_reader.read(32, signed=True)
+                    entity.frames.append(
+                        replay.EntityFrame(
+                            frame=entity_frame,
+                            x_pos=entity_x / 10.0,
+                            y_pos=entity_y / 10.0,
+                            x_speed=entity_x_speed / 100.0,
+                            y_speed=entity_y_speed / 100.0,
+                        )
+                    )
+
+        return rep
 
 
 def read_level(data: bytes) -> Level:

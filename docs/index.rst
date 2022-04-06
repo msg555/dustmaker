@@ -44,6 +44,14 @@ prop module
    :undoc-members:
    :show-inheritance:
 
+replay module
+----------------------
+
+.. automodule:: dustmaker.replay
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 bitio module
 ----------------------
 
