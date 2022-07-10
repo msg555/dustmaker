@@ -2,14 +2,14 @@
 level files.
 """
 import io
-from typing import Any, Dict, List, Tuple
 import zlib
+from typing import Any, Dict, List, Tuple
 
 from . import replay
 from .bitio import BitIOReader
 from .entity import Entity
-from .level import Level, LevelType
 from .exceptions import LevelParseException
+from .level import Level, LevelType
 from .prop import Prop
 from .replay import Replay
 from .tile import Tile, TileShape
@@ -78,7 +78,7 @@ class DFReader(BitIOReader):
         Arguments:
             vtype (VariableType): The type of variable to read
         """
-        max_width = (2 ** 16) - 1
+        max_width = (2**16) - 1
         if vtype == VariableType.NULL:
             raise LevelParseException("unexpected null variable")
         if vtype == VariableType.BOOL:

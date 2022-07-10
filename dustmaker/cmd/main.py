@@ -3,10 +3,10 @@
 import argparse
 import sys
 
+from dustmaker.cmd.save_convert import SaveConvert
 from dustmaker.cmd.thumbnail import Thumbnail
 from dustmaker.cmd.transform import Transform
 from dustmaker.cmd.variables import Variables
-from dustmaker.cmd.save_convert import SaveConvert
 
 UTILITIES = (
     Thumbnail,

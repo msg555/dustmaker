@@ -6,19 +6,15 @@ import sys
 from typing import Any
 
 from dustmaker import DFReader, DFWriter
+from dustmaker.cmd.common import CliUtility, run_utility
 from dustmaker.variable import (
     VariableArray,
     VariableBool,
-    VariableInt,
-    VariableStruct,
-    VariableString,
     VariableFloat,
+    VariableInt,
+    VariableString,
+    VariableStruct,
 )
-from dustmaker.cmd.common import (
-    run_utility,
-    CliUtility,
-)
-
 
 COPY_KEYS = (
     "citybook",
@@ -143,7 +139,7 @@ def migrate_stats(stats: dict) -> dict:
         )
 
     new_scores.sort(key=lambda score: score.value["file_name"].value)
-    new_stats["k_score"] = VariableArray(VariableStruct, new_scores)
+    new_stats["k_score"] = VariableArray(VariableStruct, new_scores)  # type: ignore
     new_stats["k_root"] = VariableArray(VariableString, [VariableString(b"")])
     new_stats["k_wood_used"] = VariableArray(VariableInt, [VariableInt(keys_used[0])])
     new_stats["k_silver_used"] = VariableArray(VariableInt, [VariableInt(keys_used[1])])

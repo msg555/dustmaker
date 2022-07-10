@@ -4,16 +4,10 @@ Unit tests for tile module routines
 import copy
 import itertools
 import random
-from typing import Dict
 import unittest
+from typing import Dict
 
-from dustmaker.tile import (
-    Tile,
-    TileEdgeData,
-    TileShape,
-    TileSide,
-    TileSpriteSet,
-)
+from dustmaker.tile import Tile, TileEdgeData, TileShape, TileSide, TileSpriteSet
 from dustmaker.transform import TxMatrix
 
 

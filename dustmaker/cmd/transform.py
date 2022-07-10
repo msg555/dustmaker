@@ -6,12 +6,9 @@ import argparse
 import sys
 
 from dustmaker import DFReader, DFWriter
-from dustmaker.transform import TxMatrix
-from dustmaker.cmd.common import (
-    run_utility,
-    CliUtility,
-)
+from dustmaker.cmd.common import CliUtility, run_utility
 from dustmaker.level import LevelType
+from dustmaker.transform import TxMatrix
 
 
 class Transform(CliUtility):

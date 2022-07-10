@@ -2,22 +2,22 @@
 Module defining the primary interface for working with levels in dustmaker.
 """
 import copy
-from enum import IntEnum
 import functools
 import math
+from enum import IntEnum
 from typing import Callable, Dict, Optional, Tuple, TypeVar
 
-from .entity import bind_prop, Entity
+from .entity import Entity, bind_prop
 from .exceptions import LevelException
 from .prop import Prop
 from .tile import (
+    SHAPE_VERTEXES,
+    SIDE_CLOCKWISE_INDEX,
     Tile,
     TileEdgeData,
     TileShape,
     TileSide,
     TileSpriteSet,
-    SHAPE_VERTEXES,
-    SIDE_CLOCKWISE_INDEX,
 )
 from .transform import TxMatrix
 from .variable import Variable, VariableBool, VariableInt, VariableString

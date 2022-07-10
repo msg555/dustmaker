@@ -8,10 +8,7 @@ import os
 import sys
 
 from dustmaker import DFReader, DFWriter
-from dustmaker.cmd.common import (
-    run_utility,
-    CliUtility,
-)
+from dustmaker.cmd.common import CliUtility, run_utility
 from dustmaker.variable import VariableBool
 
 

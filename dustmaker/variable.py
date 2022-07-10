@@ -77,7 +77,7 @@ class Variable(metaclass=abc.ABCMeta):
 
     def __repr__(self) -> str:
         # pylint: disable=no-member
-        return "Variable(%s, %s)" % (repr(self._vtype), repr(self.value))
+        return f"Variable({repr(self._vtype)}, {repr(self.value)})"
 
 
 class VariableBool(Variable):
@@ -103,7 +103,7 @@ class VariableInt(Variable):
 
     def _assert_types(self) -> None:
         """Ensure value is int in range."""
-        assert isinstance(self.value, int) and -(2 ** 31) <= self.value < 2 ** 31
+        assert isinstance(self.value, int) and -(2**31) <= self.value < 2**31
 
 
 class VariableUInt(Variable):
@@ -116,7 +116,7 @@ class VariableUInt(Variable):
 
     def _assert_types(self) -> None:
         """Ensure value is int in range."""
-        assert isinstance(self.value, int) and 0 <= self.value < 2 ** 32
+        assert isinstance(self.value, int) and 0 <= self.value < 2**32
 
 
 class VariableFloat(Variable):

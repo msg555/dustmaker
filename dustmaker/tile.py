@@ -2,9 +2,9 @@
 Module defining the tile respresentation in dustmaker.
 """
 import copy
+import math
 from dataclasses import dataclass
 from enum import IntEnum
-import math
 from typing import Generator, Optional, Tuple
 
 from .transform import TxMatrix

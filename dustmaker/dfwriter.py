@@ -4,16 +4,16 @@ files.
 """
 import io
 import itertools
+import zlib
 from math import floor, log
 from typing import Dict, Iterable, List, Tuple, Union
-import zlib
 
 from . import replay
 from .bitio import BitIOWriter
-from .level import Level
 from .exceptions import LevelParseException
-from .tile import TileSpriteSet
+from .level import Level
 from .replay import Replay
+from .tile import TileSpriteSet
 from .variable import (
     Variable,
     VariableArray,

@@ -3,9 +3,9 @@ Module defining basic entity representations as well as a custom entity
 object for each entity in Dustforce.
 """
 import copy
-from enum import IntEnum
 import math
-from typing import cast, Dict, Optional, Tuple, Type, TypeVar
+from enum import IntEnum
+from typing import Dict, Optional, Tuple, Type, TypeVar, cast
 
 from .transform import TxMatrix
 from .variable import (

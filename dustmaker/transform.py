@@ -60,7 +60,7 @@ class TxMatrix(tuple):
         represents how much 2D areas expand in scale."""
         return math.sqrt(abs(self.determinant))
 
-    def __mul__(self, rhs: Union[float, "TxMatrix"]) -> "TxMatrix":
+    def __mul__(self, rhs: Union[float, "TxMatrix"]) -> "TxMatrix":  # type: ignore
         if isinstance(rhs, (int, float)):
             # Multiply by a scalar
             return TxMatrix(
@@ -90,7 +90,7 @@ class TxMatrix(tuple):
             )
         )
 
-    def __rmul__(self, lhs: Union[float]) -> "TxMatrix":
+    def __rmul__(self, lhs: Union[float]) -> "TxMatrix":  # type: ignore
         return self * lhs
 
     def sample(self, x: float, y: float, *, with_offset=True) -> Tuple[float, float]:

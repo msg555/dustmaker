@@ -5,12 +5,7 @@ import io
 import os
 import unittest
 
-from dustmaker import (
-    read_level,
-    write_level,
-    DFReader,
-    DFWriter,
-)
+from dustmaker import DFReader, DFWriter, read_level, write_level
 
 here = os.path.abspath(os.path.dirname(__file__))
 

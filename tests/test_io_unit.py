@@ -72,15 +72,15 @@ class TestIOUnit(unittest.TestCase):
             {
                 "v1": VariableBool(False),
                 "v2": VariableBool(False),
-                "a" * 63: VariableInt(-(2 ** 31)),
-                "b": VariableUInt((2 ** 32) - 1),
-                "longstring": VariableString(b"wowee" * (2 ** 16)),
+                "a" * 63: VariableInt(-(2**31)),
+                "b": VariableUInt((2**32) - 1),
+                "longstring": VariableString(b"wowee" * (2**16)),
                 "arr": VariableArray(
                     VariableString,
                     [
                         VariableString(b"hi"),
                         VariableString(b"bye"),
-                        VariableString(b"nice" * (2 ** 16)),
+                        VariableString(b"nice" * (2**16)),
                         VariableString(b"later"),
                     ],
                 ),

@@ -8,20 +8,17 @@ import sys
 from typing import Any, Dict, Tuple, Type
 
 from dustmaker import DFReader, DFWriter
+from dustmaker.cmd.common import CliUtility, run_utility
 from dustmaker.variable import (
     Variable,
-    VariableBool,
-    VariableStruct,
-    VariableInt,
-    VariableUInt,
-    VariableFloat,
-    VariableString,
-    VariableVec2,
     VariableArray,
-)
-from dustmaker.cmd.common import (
-    run_utility,
-    CliUtility,
+    VariableBool,
+    VariableFloat,
+    VariableInt,
+    VariableString,
+    VariableStruct,
+    VariableUInt,
+    VariableVec2,
 )
 
 KNOWN_VAR_FILE_HEADERS = {b"DF_STA", b"DF_CFG", b"DF_FOG"}
@@ -185,7 +182,7 @@ class Variables(CliUtility):
     @staticmethod
     def update_variables(args) -> int:
         """Update the variables in the object requested"""
-        with open(args.new_data, "r") as ndata:
+        with open(args.new_data, "r", encoding="utf-8") as ndata:
             jdata = json.load(ndata)
 
         if args.header:
