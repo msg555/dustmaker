@@ -103,42 +103,6 @@ LEVEL_KEYS = {
     )
 }
 
-KEY_NAMES = ["wood", "silver", "gold", "red"]
-
-
-def _convert_combo(combo_breaks: int) -> int:
-    """
-    Return a letter grade (5=S, 1=D) given number of combo breaks.
-    """
-    if combo_breaks < 0:
-        return 0
-    if combo_breaks == 0:
-        return 5
-    if combo_breaks <= 1:
-        return 4
-    if combo_breaks <= 3:
-        return 3
-    if combo_breaks <= 5:
-        return 2
-    return 1
-
-
-def _convert_thorough(thorough: float) -> int:
-    """
-    Return a letter grade given the percent thoroughness. (5=S, 1=D)
-    """
-    if thorough >= 100:
-        return 5
-    if thorough >= 90:
-        return 4
-    if thorough >= 80:
-        return 3
-    if thorough >= 60:
-        return 2
-    if thorough < 0:
-        return 0
-    return 1
-
 
 def migrate_stats(stats: dict) -> dict:
     """
@@ -146,19 +110,13 @@ def migrate_stats(stats: dict) -> dict:
     """
     new_stats = {key: val for key, val in stats.items() if key in COPY_KEYS}
 
-    # new_stats["k_gold_used"] = VariableArray(
-    #    VariableInt,
-    # print(stats)
-
     def _get_default(obj: dict, key: str, default: Any) -> Any:
         val = obj.get(key)
-        print(val, type(val))
         if val is None:
             return default
         return val.value
 
     new_scores = []
-    keys_earned = [0, 0, 0, 0]
     keys_used = [0, 0, 0, _get_default(stats, "red_used", 0)]
     for score in stats.get("score", []):
         level = score["file_name"].value
@@ -168,9 +126,6 @@ def migrate_stats(stats: dict) -> dict:
         if key > 0:
             keys_used[key - 1] += 1
 
-        keys_earned[key] += _convert_combo(score["combo"].value) + _convert_thorough(
-            score["thorough"].value
-        )
         new_scores.append(
             VariableStruct(
                 {
