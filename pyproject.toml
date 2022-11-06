@@ -29,6 +29,9 @@ disable = [
     "format",
     "missing-module-docstring",
     "fixme",
+    # Needed for backwards compatibility
+    "deprecated-typing-alias",
+    "consider-alternative-union-syntax",
 ]
 
 [tool.pylint.MASTER]

@@ -1,0 +1,40 @@
+version: "1.0"
+
+base_image_repo: msg555/dustmaker-base
+stage_image_name: '{{ stage_name }}'
+stage_push_name: |
+  msg555/{{ stage_name }}
+  {%- if profile != "release" %}
+    -{{ profile }}
+  {%- endif -%}
+  {%- if vars.tag is defined -%}
+    :{{ vars.tag }}
+  {%- endif -%}
+
+platforms:
+  - linux/amd64
+  - linux/arm64
+
+default_profile: release
+profiles:
+  release:
+    python_version: '3.10'
+    install_dev: false
+  dev:
+    python_version: '3.10'
+    install_dev: true
+  py3.10:
+    python_version: '3.10'
+    install_dev: false
+  py3.9:
+    python_version: '3.9'
+    install_dev: false
+  py3.8:
+    python_version: '3.8'
+    install_dev: false
+  py3.7:
+    python_version: '3.7'
+    install_dev: false
+  py3.6:
+    python_version: '3.6'
+    install_dev: false

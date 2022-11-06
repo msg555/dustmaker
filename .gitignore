@@ -3,6 +3,7 @@ __pycache__
 *.pyc
 *.egg
 *.egg-info
+.venv
 docs/_build
 build
 dist

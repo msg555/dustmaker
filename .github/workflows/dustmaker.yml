@@ -1,21 +1,56 @@
-name: Dustmaker
+name: dustmaker
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     steps:
+    - name: Install tplbuild
+      run: python3 -m pip install tplbuild
     - uses: actions/checkout@v2
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
     - name: Lint
-      run: make lint
-    - name: Test
-      run: make test
+      run: make PROFILE=dev docker-lint
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        profile: [py3.6, py3.7, py3.8, py3.9, py3.10]
+    steps:
+    - name: Install tplbuild
+      run: python3 -m pip install tplbuild
+    - uses: actions/checkout@v2
+    - name: Test ${{ matrix.profile }}
+      env:
+        PROFILE: ${{ matrix.profile }}
+      run: make docker-test
+
+  check-base:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install tplbuild
+      run: python3 -m pip install tplbuild
+    - uses: actions/checkout@v2
+    - name: Check Base
+      run: |
+        tplbuild base-build --check
+
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install tplbuild
+      run: python3 -m pip install tplbuild
+    - uses: actions/checkout@v2
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@master
+      with:
+        platforms: all
+    - name: Build
+      env:
+        DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+        DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+      run: |
+        docker login -u "${DOCKER_REGISTRY_USERNAME}" -p "${DOCKER_REGISTRY_PASSWORD}"
+        tplbuild publish --profile release --set "tag=head"
