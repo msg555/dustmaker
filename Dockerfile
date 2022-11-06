@@ -14,4 +14,6 @@ FROM base-dustmaker AS dustmaker
 
 COPY . ./
 
+ENV PYTHONPATH=/dustmaker
+
 ENTRYPOINT ["python", "-m", "dustmaker"]
