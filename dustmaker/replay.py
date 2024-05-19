@@ -1,6 +1,7 @@
 """
 Module defining the replay container types
 """
+
 import dataclasses
 from enum import IntEnum, IntFlag
 from typing import Any, Callable, Dict, List, Optional

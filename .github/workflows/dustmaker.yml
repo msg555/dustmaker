@@ -2,7 +2,7 @@ name: dustmaker
 on:
   push:
     branches:
-      - main
+      - "**"
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -11,13 +11,13 @@ jobs:
       run: python3 -m pip install tplbuild
     - uses: actions/checkout@v2
     - name: Lint
-      run: make PROFILE=dev docker-lint
+      run: make PROFILE=py3.12 docker-lint
 
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        profile: [py3.6, py3.7, py3.8, py3.9, py3.10]
+        profile: [py3.8, py3.9, py3.10, py3.11, py3.12]
     steps:
     - name: Install tplbuild
       run: python3 -m pip install tplbuild

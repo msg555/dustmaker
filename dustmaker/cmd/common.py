@@ -1,4 +1,5 @@
 """ Shared CLI definitions """
+
 import abc
 import argparse
 from typing import Type

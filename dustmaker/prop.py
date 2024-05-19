@@ -1,4 +1,5 @@
 """ Module containing dustmaker's prop representation.  """
+
 import math
 
 from .transform import TxMatrix

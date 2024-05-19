@@ -1,6 +1,7 @@
 """
 Module defining the Dustforce variable representation
 """
+
 import abc
 import collections.abc
 from enum import IntEnum

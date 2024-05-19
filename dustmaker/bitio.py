@@ -1,6 +1,7 @@
 """
 Module defining the core binary reader for Dustforce binary formats.
 """
+
 import io
 import itertools
 from typing import BinaryIO, Iterable

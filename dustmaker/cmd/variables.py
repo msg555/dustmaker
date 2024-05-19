@@ -174,7 +174,7 @@ class Variables(CliUtility):
         )
 
     def main(self, args) -> int:
-        """thumbnail CLI entrypoint"""
+        """variables CLI entrypoint"""
         if args.new_data:
             return self.update_variables(args)
         return self.output_variables(args)
@@ -185,6 +185,8 @@ class Variables(CliUtility):
         with open(args.new_data, "r", encoding="utf-8") as ndata:
             jdata = json.load(ndata)
 
+        level = None
+        region_data = None
         if args.header:
             header = args.header.encode()
             if header not in KNOWN_VAR_FILE_HEADERS:
@@ -205,6 +207,7 @@ class Variables(CliUtility):
 
         with DFWriter(open(args.object, "wb")) as writer:
             if header == b"DF_LVL":
+                assert level and region_offsets and region_data
                 level.variables = variables.value
                 writer.write_level_ex(level, region_offsets, region_data)
             else:

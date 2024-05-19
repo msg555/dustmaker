@@ -1,9 +1,10 @@
 """ Module providing methods for reading Dustforce binary formats including
 level files.
 """
+
 import io
 import zlib
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from . import replay
 from .bitio import BitIOReader
@@ -464,7 +465,7 @@ class DFReader(BitIOReader):
             self.read_region(level)
         return level
 
-    def read_replay(self, *, known_length: int = None) -> Replay:
+    def read_replay(self, *, known_length: Optional[int] = None) -> Replay:
         """Read in a replay from the input stream.
 
         Arguments:
