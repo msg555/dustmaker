@@ -2,6 +2,7 @@
 Module defining basic entity representations as well as a custom entity
 object for each entity in Dustforce.
 """
+
 import copy
 import math
 from enum import IntEnum

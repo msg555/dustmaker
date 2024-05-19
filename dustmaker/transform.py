@@ -1,4 +1,5 @@
 """ Module defining TxMatrix class used for affine transformations. """
+
 import math
 from typing import Iterable, Tuple, Union
 

@@ -1,6 +1,7 @@
 """
 End to end tests for Dustmaker as a whole
 """
+
 import io
 import os
 import unittest

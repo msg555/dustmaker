@@ -1,6 +1,7 @@
 """
 Module defining the primary interface for working with levels in dustmaker.
 """
+
 import copy
 import functools
 import math
@@ -250,7 +251,10 @@ class Level:
                 ID will be at least one less than the next ID.
         """
         init = 100 if reset else self._next_id - 1
+
+        # pylint: disable=nested-min-max
         mx_id = max(max(self.props, default=init), max(self.entities, default=init))
+
         if self.backdrop is not None:
             mx_id = max(mx_id, self.backdrop.calculate_max_id())
         self._next_id = mx_id + 1

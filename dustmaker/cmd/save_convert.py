@@ -1,6 +1,7 @@
 """
 CLI entrypoint for converting vanilla save files to Dustmod save files.
 """
+
 import argparse
 import sys
 from typing import Any

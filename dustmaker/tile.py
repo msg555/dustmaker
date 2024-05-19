@@ -1,6 +1,7 @@
 """
 Module defining the tile respresentation in dustmaker.
 """
+
 import copy
 import math
 from dataclasses import dataclass
@@ -405,7 +406,7 @@ class Tile:
             if TileShape.BIG_5 <= new_shape <= TileShape.SMALL_8:
                 # horizontal flip
                 hflip = True
-                new_shape = TileShape(new_shape - 8)
+                new_shape = TileShape(new_shape - 8)  # type: ignore
 
             if TileShape.BIG_1 <= new_shape <= TileShape.SMALL_4:
                 rots = (new_shape - TileShape.BIG_1) // 2

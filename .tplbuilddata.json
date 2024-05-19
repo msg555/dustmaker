@@ -2,113 +2,101 @@
   "version": "1.0",
   "source": {
     "library/python": {
-      "3.8": {
-        "linux/arm64": "sha256:dc6b67d8f5dced90899a6ca616d38daf23114d04780a187703038e9e98e26f93",
-        "linux/amd64": "sha256:254101fcf737ef89a912ce9ad7488801a01e0a35bff1cc5e7d6bb86d0b6e1c3f"
-      },
-      "3.10": {
-        "linux/arm64": "sha256:61e90b1cd885213a87d5ac6497f1977fbb0a325176613c7b80f9b63bcb6ad040",
-        "linux/amd64": "sha256:eef39ed128b235c95c723eabe2de05670ba87f3273cc784effe4c3d9d0847c09"
+      "3.12": {
+        "linux/arm64": "sha256:b4932937ea279bd16ddec18a0032569086dc5572512097c9670f559729be8b0c",
+        "linux/amd64": "sha256:76831bb094456f98613115be37cc8d4f9ab0d128467726ed3160044c80546437"
       },
       "3.9": {
-        "linux/amd64": "sha256:b5f024fa682187ef9305a2b5d2c4bb583bef83356259669fc80273bb2222f5ed",
-        "linux/arm64": "sha256:d415f3f99c9045a77125797ffcd65f6bc76a22a672d89486e9c86a768d96fec2"
+        "linux/amd64": "sha256:4c48c04d1fb3009c52c336e056f902701a669fb1a0dcf7b31eecaa5902e4b624",
+        "linux/arm64": "sha256:22851f477e0ba5eeda6a732dc7730318beb46198d6c567ec83df3787bc7e7d19"
       },
-      "3.6": {
-        "linux/amd64": "sha256:d097a4907a8ec079df5ac31872359c2de510f82214c0448e926393b376d3b60d",
-        "linux/arm64": "sha256:6b38ac662248fefa063a111bf2ad90812583c7295a6b912e563c969795a0e4d8"
+      "3.11": {
+        "linux/arm64": "sha256:9ff1b1fb9d923c082b02eef3ec9181ab2aed94b1c20384b04bf8976385017662",
+        "linux/amd64": "sha256:e794245fa7da7358244cc99dd898dc30c8f7b7dd0f7ab101aea3afbcfc3fd1bb"
       },
-      "3.7": {
-        "linux/arm64": "sha256:3a0ac2b0e1189417ece5c0d457849b7998e487bf0e76dc751745596eefbb249c",
-        "linux/amd64": "sha256:fe92c5f312a80e6880c69d6dddeceff156ba514df8f44ebc806db45b3354c462"
+      "3.8": {
+        "linux/amd64": "sha256:340112dda59ac649527c9a8ba86f02343d981cb508161ba34ae7bb52a797e6ce",
+        "linux/arm64": "sha256:948fecda0be802cff0e5267b08450efad905cf104beb4cff9ed347020e470144"
+      },
+      "3.10": {
+        "linux/amd64": "sha256:6e5738e03ea4680d6333148da5e62f5c4a661a76681f477fcfdb99110097caef",
+        "linux/arm64": "sha256:a71cc28e3519897e894cc6abcc13e72bf6eca9e5bbb73d743b8c0c724f318e3c"
       }
     }
   },
   "base": {
     "release": {
       "base-dustmaker": {
-        "linux/amd64": {
-          "build_hash": "c12af14061ba580b170972889b15baf19e5afc7e6bd7b36772ba50aa2761ffd8",
-          "image_digest": "sha256:23e25f9819b9b2a64705757509f0f022917311d3ab3f7609f6c4fddfc66f3dbc"
-        },
         "linux/arm64": {
-          "build_hash": "360d7923e06d51278b6225a3a1c25970334678ee1550dccb2eefd4c0f3d67299",
-          "image_digest": "sha256:93836ae84fe86ffd0af1fdfd82fa7429f06ded049bf214e2bd96f1de120c3624"
-        }
-      }
-    },
-    "py3.10": {
-      "base-dustmaker": {
-        "linux/amd64": {
-          "build_hash": "c12af14061ba580b170972889b15baf19e5afc7e6bd7b36772ba50aa2761ffd8",
-          "image_digest": "sha256:23e25f9819b9b2a64705757509f0f022917311d3ab3f7609f6c4fddfc66f3dbc"
+          "build_hash": "a4f4115a4de0697f0c8ba56441148c0d54b8f7987584d91dfe527768a0b10905",
+          "image_digest": "sha256:044f614fea9681f9f1bae74d8c4ff531c89981da3bf8279532096cc7a0c4d4c7"
         },
-        "linux/arm64": {
-          "build_hash": "360d7923e06d51278b6225a3a1c25970334678ee1550dccb2eefd4c0f3d67299",
-          "image_digest": "sha256:93836ae84fe86ffd0af1fdfd82fa7429f06ded049bf214e2bd96f1de120c3624"
-        }
-      }
-    },
-    "py3.9": {
-      "base-dustmaker": {
         "linux/amd64": {
-          "build_hash": "f93d8c489c8092c852da4f0ae51240fdfddefceb714966b16d3bbbad67175a8e",
-          "image_digest": "sha256:51ff5c35c409ab2b0bb1607e47b86308eed36ac9f7a877b5c993c4d092133ae9"
-        },
-        "linux/arm64": {
-          "build_hash": "728a7aab751e5e2b0cf5149631343f0b6bcd8d9cbee7257dc6037c8126286fec",
-          "image_digest": "sha256:65a0103fb3a284d8e3e71faf04e2371d5638bf2268270e548ebfb61e605abc60"
+          "build_hash": "8848ef56d65bd5715c80c9a50cc9ff6af3194f767beb0509122258d6138b79ec",
+          "image_digest": "sha256:c6821d37a72ce52ca08ebdf470dc67b7a616aba619d5bfbd546c7c7302c530b6"
         }
       }
     },
     "py3.8": {
       "base-dustmaker": {
         "linux/amd64": {
-          "build_hash": "9e1c7def58376d3a6b9c2db41c5ee122de45113189848ded8124918591931e8a",
-          "image_digest": "sha256:7ac60cdfce84925b95f285d6bee2bc5b3188117ef86e838a0e288a8460f77457"
+          "build_hash": "4d293bce9666317a8ac4139617c67fa736599757246deebeecbdf707aa3de925",
+          "image_digest": "sha256:d4ba8db612eaa11f7580d28341b090562d0f85cfd39cec22b3b8285070d063de"
         },
         "linux/arm64": {
-          "build_hash": "9c5c1413dcc800596617c35637bf611c2982b83aae46370fad1372130f62f865",
-          "image_digest": "sha256:ab4662e15dc120754061820c529995c7b6f09199068506ef00ae12f87bd08909"
+          "build_hash": "a32e610e16fdd899528415cbf4e948280ea6ab59466e0b890749637d9a55d2a7",
+          "image_digest": "sha256:94a3e7cc8c1f6eaf99d7bb6e148d7e008969026a09944d8363a7784e12615d5d"
         }
       }
     },
-    "py3.7": {
+    "py3.10": {
       "base-dustmaker": {
         "linux/amd64": {
-          "build_hash": "406d3c42f119d2a5b4c90c0f223300d47e23ab35ab38927506fe2a7e3eab23e3",
-          "image_digest": "sha256:824a98a7ab077da4149aa3f7c8f43c987bec1171b6431cc46867c2f17602df17"
+          "build_hash": "730230418996cc88ee916abe8ef10f76d14f04c70259226d0c40ba150ef4250d",
+          "image_digest": "sha256:edc63a47601df3aaaa284f68de8743cf1e5a7731b3c0b6c3ba26e27920d3b6be"
         },
         "linux/arm64": {
-          "build_hash": "f3ccc2a5a5fb741cf1fd23d182f230c826755120fa5794e71b28a008210344f4",
-          "image_digest": "sha256:98280a5a19f237e6e89af8d235d727fbea3c7ad179e7898046228c805e1a0fca"
+          "build_hash": "891e9ba3dbc57a52fd5f7a649b0dbae307af4f4ec025793fcbdc69288d628504",
+          "image_digest": "sha256:0d24aa5dd8144082e0964f41b67c5a757c125da4dffe2b9b0edd61a8b4fcd748"
         }
       }
     },
-    "py3.6": {
+    "py3.12": {
       "base-dustmaker": {
         "linux/arm64": {
-          "build_hash": "d47b707cefa33b49369b337c21914df07dfb5d431a9c3ec54cb1dbb760bb5a68",
-          "image_digest": "sha256:14f67101ba6fe9f5e334d3963fcc3adf39bae8d66ecfad29eb307cb6fb3e86b2"
+          "build_hash": "882389d973a53d38cf0205211450ecad7ef852f417de9d7d9eab06dab2c29fc2",
+          "image_digest": "sha256:897a34defcee570ae4f165e13d001844506d4520a6f385c485450dbe176c846c"
         },
         "linux/amd64": {
-          "build_hash": "a554ec1a181c48c6af9be50fcef8e22cd4b7789014b43bae75a3305c709c1f71",
-          "image_digest": "sha256:142c35f5715916e2289b43a4c77dbb7ad4d03373e7b88a58bd585924f5967cce"
+          "build_hash": "1a7437aa9d6dca9fa64305a69265109654814caac6350a03da59e3eb7c2d3e37",
+          "image_digest": "sha256:28e4caadf6440a5dcaffe3b37b864c648ff04bff13cf1c838820b7140781e47a"
         }
       }
     },
-    "dev": {
+    "py3.9": {
       "base-dustmaker": {
         "linux/amd64": {
-          "build_hash": "521b3d40daf7b804abfe1af0e981855ce14ef576a78d5540d9ad29c24ad97149",
-          "image_digest": "sha256:63eba3ea2be771b31d89a1b69af71cb54d64e0261008caaa958be185c8736d0a"
+          "build_hash": "64ad6aaa0686e9e6669ee429b6f04fe33008503003aef3f0896a246dba0a577b",
+          "image_digest": "sha256:e248236d207e72b9763f6b9a1044c71d4d8b35ddf09c2f41bf79bde42bcd7a8e"
         },
         "linux/arm64": {
-          "build_hash": "8885156e0e3db7c4bfe3dda11d9c00fec939a11998884fdbe52e8da8459d40d4",
-          "image_digest": "sha256:b1ff378d0dda6b86551684e32e9d1f7b9469e28f4fcb9defcfc85d872a56cbda"
+          "build_hash": "0d80a78059a199b0ea4615237f5e212af97b072f15528fe48cb8e0be1c996192",
+          "image_digest": "sha256:5ed436e7b77ec9a2abdeaed010d98a33a8f364c9089a2b850b88906ae39f86c6"
+        }
+      }
+    },
+    "py3.11": {
+      "base-dustmaker": {
+        "linux/amd64": {
+          "build_hash": "936b8fc64aae7232fc05e2548fa5e12d41ab375ba40a48ee95d0206ca2a7c095",
+          "image_digest": "sha256:2d062d0bf887b9f54fc5df0abb15d5b4c50587ed1f1bb4589067fdbda6efc4c6"
+        },
+        "linux/arm64": {
+          "build_hash": "afc1ddc35140f5a5e89d5397133685851df33bda42dff98ac5ca7d054c15cc06",
+          "image_digest": "sha256:10b06e77d59de302e2698d6d0bc5bca908f7264abf3d57744a3c15b1d30666ec"
         }
       }
     }
   },
-  "hash_salt": "e3f9aa90-2c58-4c52-9dd3-2ab180818217"
+  "hash_salt": "8664c1f7-6db9-4d39-97c4-bc3af619dc94"
 }

@@ -2,6 +2,7 @@
 Module providing methods for write Dustforce binary formats including level
 files.
 """
+
 import io
 import itertools
 import zlib
@@ -314,7 +315,7 @@ class DFWriter(BitIOWriter):
             flags |= 2
 
             self.write(10, len(dusts))
-            for (x, y, tile) in dusts:
+            for x, y, tile in dusts:
                 self.write(5, x)
                 self.write(5, y)
                 self.write_bytes(tile._pack_dust_data())
@@ -356,7 +357,7 @@ class DFWriter(BitIOWriter):
             extra_names_io = io.BytesIO()
             extra_names_writer = DFWriter(extra_names_io)
             self.write(16, len(segment.entities))
-            for (id_num, x, y, entity) in segment.entities:
+            for id_num, x, y, entity in segment.entities:
                 enemy_filth += getattr(entity, "FILTH", 0)
                 self.write(32, id_num)
                 if entity.etype.startswith("z_") or entity.etype == "entity":

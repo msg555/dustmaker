@@ -1,7 +1,7 @@
 .PHONY: format format-check pylint typecheck lint test docs build pypy-test pypy-live
 PYTHON := python3
 PLATFORM ?= linux/amd64
-PROFILE := release
+PROFILE ?= release
 
 all: format lint test docs
 
@@ -22,7 +22,7 @@ typecheck:
 lint: format-check pylint typecheck
 
 test:
-	$(PYTHON) -m unittest discover -v tests/
+	$(PYTHON) -m pytest --cov dustmaker -sv tests/
 
 docs:
 	make -C docs html
@@ -42,7 +42,4 @@ pypi-live: build
     $(PYTHON) -m twine upload dist/*
 
 docker-%:
-	@PROFILE=${PROFILE}
-	@PLATFORM=${PLATFORM}
 	docker run --rm -v "$${PWD}:/work" -w /work "$$(tplbuild base-lookup --platform "$${PLATFORM}" --profile "$${PROFILE}" base-dustmaker)" make $*
-

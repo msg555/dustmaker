@@ -1,6 +1,7 @@
 """
 Unit tests for tile module routines
 """
+
 import copy
 import itertools
 import random
